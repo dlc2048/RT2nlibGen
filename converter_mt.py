@@ -70,10 +70,14 @@ for file in target_list:
     file      = os.path.join(input_path, file)
     endf_data = Evaluation(file, verbose=False)
     za        = endf_data.target['ZA']
+    meta      = endf_data.target['isomeric_state']
+    za_str    = str(za)
+    if meta:
+        za_str += 'm{}'.format(meta)
     if custom_temp:
-        oformat = '{}_{}.bin'.format(za, int(temperature))
+        oformat = '{}_{}.bin'.format(za_str, int(temperature))
     else:
-        oformat = '{}.bin'.format(za)
+        oformat = '{}.bin'.format(za_str)
     output_list += [oformat]
 
 # initialize subprocess
