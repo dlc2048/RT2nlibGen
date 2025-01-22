@@ -16,7 +16,7 @@ from src.gendf.reaction import CommonFile, Reaction, mergeComponents
 
 class GENDF:
     def __init__(self, file_name: str, nebins: int, endf: Evaluation, verbose: bool = False):
-        self._reaction = {}
+        self._reaction  = {}
         # reaction
         self._mt_list   = []    # possible MT reaction lists
         self._ralias    = None  # Reaction alias index
@@ -478,6 +478,8 @@ class GENDF:
     
     def write(self, file_name: str):
         file = Fortran(file_name, mode='w')
+        # XS
+        file.write(self._reaction[1].xs().astype(np.float32))
         # reaction
         file.write(self._mt_list.astype(np.int32))
         file.write(self._ralias.flatten().astype(np.int32))
