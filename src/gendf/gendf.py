@@ -26,8 +26,8 @@ class GENDF:
         self._stape     = []    # Sampling instruction
         # group
         self._multiplicity = None  # Global particle multiplicity
-        self._edepo        = None  # Global energy deposition
         self._gcontrol     = None  # Group control card
+        self._edepo        = None  # Global energy deposition
         self._galias       = None  # Group alias index
         self._gprob        = None  # Group alias probability
         self._eabin        = None  # Equiprobable angle bin
@@ -38,6 +38,10 @@ class GENDF:
         # merge termal neutron scattering matrix to elastic scattering {MT=221 -> MT=2}
         if 221 in self._reaction.keys():
             self._mergeThermal(verbose)
+        # remove production cross section
+        for mt in range(202, 208):
+            if mt in self._reaction.keys():
+                del self._reaction[mt]
         # merge inelastic reactions
         for mt in (4, 16, 103, 104, 105, 106, 107):
             self._mergeReaction(mt, verbose)
@@ -75,6 +79,7 @@ class GENDF:
                     q_value = 0.0
                     if mt in endf.reactions.keys():
                         q_value = endf.reactions[mt].Q_reaction
+                    
                     self._reaction[mt] = Reaction(mt, self._desc.ngn(), self._desc.ngg(), q_value)
                 segs = CommonFile(text, stream)
                 if mf == 3:  # XS
@@ -269,26 +274,43 @@ class GENDF:
         # key is 1000 * mt + mf
         ntotal     = 0
         max_legend = 0  # Maximum order of legendre polynomial
-        offset     = {}
+        offset     = {}  # Gamma
         ngn        = self._desc.ngn()  # Number of neutron group
-        for mt in self.keys():
+        # Hadron key
+        for mt in self.keys():  
             reaction = self[mt]
             for mf in reaction.keys():
                 mat  = reaction[mf].matrix()
                 okey = 1000 * mt + mf
-                offset[okey] = ntotal
-                ntotal      += mat.shape[0]
-                max_legend   = max(max_legend, mat.shape[1])
+                if mf != 16:
+                    offset[okey] = ntotal
+                    ntotal      += mat.shape[0]
+                    max_legend   = max(max_legend, mat.shape[1])
+
+        self._eabin    = np.zeros((ntotal, max_legend), dtype=float)
+
+        # Gamma key
+        for mt in self.keys():  
+            reaction = self[mt]
+            for mf in reaction.keys():
+                mat  = reaction[mf].matrix()
+                okey = 1000 * mt + mf
+                if mf == 16:
+                    offset[okey] = ntotal
+                    ntotal      += mat.shape[0]
         offset_keys = list(offset.keys())
 
-        self._eabin        = np.zeros((ntotal, max_legend), dtype=float)
-        self._gcontrol     = np.empty((len(offset) * ngn, 3), dtype=int)
+        
+        self._gcontrol = np.empty((len(offset) * ngn, 3), dtype=int)
+        self._galias   = -np.ones(ntotal, dtype=int)
+        self._gprob    = np.empty(ntotal, dtype=float)
 
         if verbose:
             print('Prepare unified data library ...')
-            print('Number of neutron group               : {}'.format(ngn))
-            print('Length of alias and equiprobable table: {}'.format(ntotal))
-            print('Length of control table               : {}'.format(len(offset) * ngn))
+            print('Number of neutron group     : {}'.format(ngn))
+            print('Length of alias table       : {}'.format(self._galias.shape[0]))
+            print('Length of equiprobable table: {}'.format(self._eabin.shape[0]))
+            print('Length of control table     : {}'.format(len(offset) * ngn))
 
         # fill control card and eabin
         if verbose:
@@ -305,7 +327,9 @@ class GENDF:
             self._gcontrol[i * 260: (i + 1) * 260]    = reaction[mf].control()
             self._gcontrol[i * 260: (i + 1) * 260,0] += toff
             mat = reaction[mf].matrix()
-            self._eabin[toff:toff + mat.shape[0],:mat.shape[1]] = mat
+            self._gprob[toff:toff + mat.shape[0]] = mat[:,0]
+            if mf != 16:  # Hadron
+                self._eabin[toff:toff + mat.shape[0],:mat.shape[1]] = mat
 
         # Link sampling instruction tape to control card
         if verbose:
@@ -425,16 +449,13 @@ class GENDF:
     def _generateGroupAlias(self, verbose: bool):
         if verbose:
             print('Generate group alias table ...')
-        self._galias = -np.ones(self._eabin.shape[0], dtype=int)
-        self._gprob  = np.empty(self._eabin.shape[0], dtype=float)
-
         iterator = self._gcontrol
         if verbose:
             iterator = tqdm(iterator)
         for epos, _, elen in iterator:
             if elen < 0:
                 continue
-            seg   = self._eabin[epos: epos + elen, 0]
+            seg   = self._gprob[epos: epos + elen]
             table = AliasTable(np.arange(elen), seg)
             self._galias[epos: epos + elen] = table.alias() + epos
             self._gprob[epos: epos + elen]  = table.prob()

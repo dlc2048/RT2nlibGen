@@ -129,7 +129,7 @@ with subprocess.Popen([ENV["njoy_executable"],
 os.chdir('..')        
 
 print("*** GENDF data processing ***")
-gendf_data = GENDF(os.path.join(working_directory, njoy_result_file), nebins, endf_data, verbose=False)
+gendf_data = GENDF(os.path.join(working_directory, njoy_result_file), nebins, endf_data, verbose=True)
 print('*** Write data "{}" ***'.format(output_path))
 gendf_data.write(output_path)
 
