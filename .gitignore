@@ -8,6 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+.vscode/
 build/
 develop-eggs/
 dist/
@@ -24,6 +25,11 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+endf/
+out/
+thread*/
+
+
 MANIFEST
 
 # PyInstaller

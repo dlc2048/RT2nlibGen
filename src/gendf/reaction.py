@@ -353,9 +353,13 @@ def mergeComponents(mf: int, reactions: list) -> Secondary:
     mat_list = []
     mult     = np.zeros(ngn, dtype=float)
 
-    # check legendre
+    # check legendre & total XS
     max_lorder = -1
+    xs_total   = np.zeros(ngn, dtype=float)
     for reaction in reactions:
+        xs_total += reaction.xs()
+        if mf not in reaction.keys():
+            continue
         max_lorder = max(max_lorder, reaction[mf].matrix().shape[1])
 
     mat_len_total = 0
@@ -364,6 +368,8 @@ def mergeComponents(mf: int, reactions: list) -> Secondary:
         gmin = 999999999
         gmax = -1
         for reaction in reactions:
+            if mf not in reaction.keys():
+                continue
             cpos, ig2lo, mat_len = reaction[mf].control()[group]
             if mat_len < 0:
                 continue
@@ -377,10 +383,12 @@ def mergeComponents(mf: int, reactions: list) -> Secondary:
         mat_len_total += gmax - gmin
         # matrix
         for reaction in reactions:
+            if mf not in reaction.keys():
+                continue
             cpos, ig2lo, mat_len = reaction[mf].control()[group]
             if mat_len < 0:
                 continue
-            xs   = reaction.xs()[group]
+            xs    = reaction.xs()[group]
             cmult = 0
             if mf == 16:  # gamma
                 cmult = reaction[mf].multiplicity()[group]
@@ -391,7 +399,7 @@ def mergeComponents(mf: int, reactions: list) -> Secondary:
             else:
                 cmult = GENDF_MF_TO_MULT[mf][reaction.mt()]
             mat_sub      = reaction[mf].matrix()
-            mult[group] += cmult
+            mult[group] += cmult * xs / xs_total[group]
             for i in range(mat_len):
                 poly = mat_sub[cpos + i]
                 gpos = ig2lo + i - gmin

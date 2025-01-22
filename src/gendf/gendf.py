@@ -156,7 +156,7 @@ class GENDF:
 
         # hadron
         parent_has_table = mf in self._reaction[mt_parent].keys()
-        child_has_table  = np.all([mf in self._reaction[i].keys() for i in target_list])
+        child_has_table  = np.any([mf in self._reaction[i].keys() for i in target_list])
         sub_reactions    = [self._reaction[i] for i in target_list]
         if not parent_has_table and child_has_table:
             secondary = mergeComponents(mf, sub_reactions)
@@ -164,7 +164,7 @@ class GENDF:
 
         # gamma
         parent_has_table = 16 in self._reaction[mt_parent].keys()
-        child_has_table  = np.all([16 in self._reaction[i].keys() for i in target_list])
+        child_has_table  = np.any([16 in self._reaction[i].keys() for i in target_list])
         if not parent_has_table and child_has_table:
             secondary = mergeComponents(16, sub_reactions)
             self._reaction[mt_parent].setComponent(16, secondary)
@@ -457,7 +457,7 @@ class GENDF:
                 continue
             seg   = self._gprob[epos: epos + elen]
             table = AliasTable(np.arange(elen), seg)
-            self._galias[epos: epos + elen] = table.alias() + epos
+            self._galias[epos: epos + elen] = table.alias()
             self._gprob[epos: epos + elen]  = table.prob()
 
     def _generateEquiprobAngles(self, nebins: int, verbose: bool):
