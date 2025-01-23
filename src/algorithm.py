@@ -8,25 +8,11 @@ this code is part of the RT2 project
 """
 
 import numpy as np
-from scipy.special import legendre
 from scipy.interpolate import interp1d, interp2d
 from scipy.integrate import quad, trapezoid
 from scipy.optimize import root_scalar
 
 from src import constants as const
-
-
-def legendreToPolynomial(coeff: np.ndarray) -> np.ndarray:
-    """
-    Convert legendre coefficient array to polynomial
-
-    :param coeff: Legendre coefficients 
-    :return: Polynomial coefficients
-    """
-    polynomial = np.zeros(len(coeff), dtype=np.float64)
-    for order, val in enumerate(coeff):
-        polynomial[-1-order:] += val * legendre(order)
-    return polynomial
 
 
 def legendreToEquibin(coeff: np.ndarray, nbin: int, mu_min: float=-1.0, mu_max: float=1.0) -> tuple:
@@ -44,10 +30,10 @@ def legendreToEquibin(coeff: np.ndarray, nbin: int, mu_min: float=-1.0, mu_max: 
     if mu_min > mu_max:
         raise ValueError("mu_min must be smaller than mu_max")
         
-    poly = legendreToPolynomial(coeff)
-
+    ftn = np.polynomial.Legendre(coeff)
+    
     # find roots, only real number
-    roots = np.roots(poly)
+    roots = ftn.roots()
     roots = np.real(roots[np.isreal(roots)])
     roots = roots[(mu_min < roots) * (roots < mu_max)]
     roots = np.sort(roots)
@@ -58,29 +44,39 @@ def legendreToEquibin(coeff: np.ndarray, nbin: int, mu_min: float=-1.0, mu_max: 
         roots = np.append(roots, mu_max)
 
     # get integral
-    polyint = np.poly1d(np.polyint(poly))
+    ftn_integ = ftn.integ(1)
     # get area between each neighboring roots
-    area_cumul = polyint(roots)
+    area_cumul = ftn_integ(roots)
     area       = area_cumul[1:] - area_cumul[:-1]
+    # # drop negative area -> adjust maximum and minimum mu
+    # # forward
+    # rfrom = np.argmax(area > 0.0)
+    # # backward
+    # rto   = len(area) - np.argmax(area[::-1] > 0.0)
+    # # drop root and area
+    # area  = area[rfrom:rto]
+    # roots = roots[rfrom:rto + 1]
+
+    # equiprob area
     area_total = np.sum(area[area > 0])
     area_seg   = area_total / nbin
-    last_area  = 0
 
-    # find equiprob angle bin
-    angle_bin     = np.empty(nbin+1, dtype=np.float64)
-    angle_bin[0]  = mu_min
-    angle_bin[-1] = mu_max
+    angle_bin     = np.empty(nbin + 1)
+    angle_bin[0]  = roots[0]
+    angle_bin[-1] = roots[-1]
+
+    last_area = 0
     n = 1
     for i in range(len(area)):
         if area[i] <= 0:
             continue
         root_lower = roots[i]
         root_upper = roots[i+1]
-        int_lower  = polyint(root_lower)
-        while True: # get answer
-            polyint_t = np.copy(polyint)
-            polyint_t[-1] += -int_lower + last_area - n * area_seg
-            roots_int = np.roots(polyint_t)
+        int_lower  = ftn_integ(root_lower)
+        while True:  # get answer
+            ftn_integ_t = ftn_integ - int_lower + last_area - n *area_seg
+
+            roots_int = ftn_integ_t.roots()
             roots_int = np.real(roots_int[np.isreal(roots_int)])
             roots_int = roots_int[(root_lower <= roots_int) * (roots_int <= root_upper)]
             if len(roots_int) > 0:
