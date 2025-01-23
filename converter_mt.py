@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import time
 
+import numpy as np
 from tqdm import tqdm
 from pyne.endf import Evaluation
 
@@ -74,10 +75,7 @@ for file in target_list:
     za_str    = str(za)
     if meta:
         za_str += 'm{}'.format(meta)
-    if custom_temp:
-        oformat = '{}_{}.bin'.format(za_str, int(temperature))
-    else:
-        oformat = '{}.bin'.format(za_str)
+    oformat = '{}_{}.bin'.format(za_str, int(np.round(temperature)))
     output_list += [oformat]
 
 # initialize subprocess
@@ -121,4 +119,4 @@ while True:
         break
     time.sleep(0.5)
 
-print(1)
+exit(0)
