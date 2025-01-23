@@ -75,7 +75,7 @@ for file in target_list:
     za_str    = str(za)
     if meta:
         za_str += 'm{}'.format(meta)
-    oformat = '{}_{}.bin'.format(za_str, int(np.round(temperature)))
+    oformat = '{}_{}K.bin'.format(za_str, int(np.round(temperature)))
     output_list += [oformat]
 
 # initialize subprocess
@@ -83,6 +83,8 @@ procs = [
     subprocess.Popen(['python', 'subprocess_empty.py'], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 ] * nthreads
 current_target = [''] * nthreads
+
+os.makedirs(output_path, exist_ok=True)
 
 # prepare folders
 for i in range(nthreads):
