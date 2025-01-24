@@ -2,6 +2,8 @@ from __future__ import annotations
 
 """
 ENDF record elements
+
+this code is part of the RT2 project
 """
 
 import numpy as np
@@ -33,7 +35,7 @@ class RecordInterface:
         self._mat = int(line[66:70])
         self._mf  = int(line[70:72])
         self._mt  = int(line[72:75])
-        self._ns  = int(line[75:80])
+        self._ns  = -1 if line[75:80].isspace() else int(line[75:80])
 
     def mat(self) -> int:
         return self._mat

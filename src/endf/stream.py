@@ -111,7 +111,7 @@ class CrossSectionInterface(FileInterface):
         self._za   = head.c1()
         self._mass = head.c2()
         self._tab  = stream.tab1()
-        self._checkSectionEnd()
+        self._checkSectionEnd(stream)
 
     def za(self) -> float:
         return self._za

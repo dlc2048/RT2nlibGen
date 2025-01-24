@@ -1,14 +1,11 @@
 
 import os
-import pathlib
-import shutil
 import subprocess
 import time
 
 import numpy as np
-from tqdm import tqdm
-from pyne.endf import Evaluation
 
+from src.endf.endf import ENDF
 from src.prompt import Prompt
 
 def printHelp():
@@ -69,9 +66,9 @@ target_list = os.listdir(input_path)
 output_list = []
 for file in target_list:
     file      = os.path.join(input_path, file)
-    endf_data = Evaluation(file, verbose=False)
-    za        = endf_data.target['ZA']
-    meta      = endf_data.target['isomeric_state']
+    endf_data = ENDF(file, verbose=False)
+    za        = endf_data.za()
+    meta      = endf_data.isomericNumber()
     za_str    = str(za)
     if meta:
         za_str += 'm{}'.format(meta)

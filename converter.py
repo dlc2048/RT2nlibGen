@@ -5,15 +5,14 @@ import shutil
 import subprocess
 import time
 
-from tqdm import tqdm
 import numpy as np
-from pyne.endf import Evaluation
 
 from src.prompt import Prompt
 from src.njoy import NJOYInput
 from src.settings import getSetting, ENV
 from src.fortran import Fortran
 from src.gendf.gendf import GENDF
+from src.endf.endf import ENDF
 
 def printHelp():
     print("Parameters: --input        | -i  <filename>    ENDF input                        ")
@@ -74,11 +73,11 @@ egg = Fortran(ENV["njoy_ggroup"]).read(np.float32)
 egn = egn * 1e6
 egg = egg * 1e6
 
-endf_data = Evaluation(input_path, verbose=False)
-endf_data.read()
+endf_data = ENDF(input_path, verbose=False)
+endf_desc = endf_data.desc()
 
-mat = endf_data.material
-za  = endf_data.target['ZA']
+mat = endf_data.mat()
+za  = endf_desc.za()
 
 # detect
 print("*** ENDF MAT={}, ISOTOPE ZA={} IS DETECTED ***".format(mat, za))

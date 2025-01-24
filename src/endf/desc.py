@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 
-
 """
 Interpret and parse ENDF document
 also provides particle id and reaction type comments

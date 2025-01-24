@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+"""
+convert GENDF file that obtained from NJOY21 to RT2 groupwised neutron library
+
+this code is part of the RT2 project
+"""
+
+
 import numpy as np
 from tqdm import tqdm
 
-from pyne.endf import Evaluation
+from src.endf.endf import ENDF
 
 from src.algorithm import AliasTable, legendreToEquibin
 from src.fortran import Fortran
@@ -15,7 +22,7 @@ from src.gendf.reaction import CommonFile, Reaction, mergeComponents
 
 
 class GENDF:
-    def __init__(self, file_name: str, nebins: int, endf: Evaluation, verbose: bool = False):
+    def __init__(self, file_name: str, nebins: int, endf: ENDF, verbose: bool = False):
         self._reaction  = {}
         # reaction
         self._mt_list   = []    # possible MT reaction lists
@@ -63,7 +70,7 @@ class GENDF:
         if verbose:
             print('Data block found for MT={}, MT={}, {} data for {}'.format(mt, mf, GENDF_MF_TYPE[mf], REACTION_TYPE[mt]))
 
-    def _readStream(self, file_name: str, endf: Evaluation, verbose: bool):
+    def _readStream(self, file_name: str, endf: ENDF, verbose: bool):
         stream = ENDFIfstream(file_name, verbose)
         while True:  # Read stream
             text = stream.text()
@@ -80,8 +87,8 @@ class GENDF:
             else:  # common file
                 if mt not in self._reaction.keys():  # push new
                     q_value = 0.0
-                    if mt in endf.reactions.keys():
-                        q_value = endf.reactions[mt].Q_reaction
+                    if mt in endf.keys():
+                        q_value = endf[mt].reactionQvalue()
                     
                     self._reaction[mt] = Reaction(mt, self._desc.ngn(), self._desc.ngg(), q_value)
                 segs = CommonFile(text, stream)
