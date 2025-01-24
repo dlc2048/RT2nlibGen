@@ -76,7 +76,7 @@ egg = egg * 1e6
 endf_data = ENDF(input_path, verbose=False)
 endf_desc = endf_data.desc()
 
-mat = endf_data.mat()
+mat = endf_desc.mat()
 za  = endf_desc.za()
 
 # detect
