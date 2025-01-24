@@ -29,8 +29,13 @@ def legendreToEquibin(coeff: np.ndarray, nbin: int, mu_min: float=-1.0, mu_max: 
     """
     if mu_min > mu_max:
         raise ValueError("mu_min must be smaller than mu_max")
+    
+    # drop small coeffs
+    if coeff[0] > 0.0:
+        coeff /= coeff[0] * 2  # normalize
+    coeff[np.abs(coeff) < 1e-10] = 0
         
-    ftn = np.polynomial.Legendre(coeff)
+    ftn  = np.polynomial.Legendre(coeff)
     
     # find roots, only real number
     roots = ftn.roots()

@@ -42,6 +42,9 @@ class GENDF:
         for mt in range(202, 208):
             if mt in self._reaction.keys():
                 del self._reaction[mt]
+        # remove anything
+        if 5 in self._reaction.keys():
+            del self._reaction[5]
         # merge inelastic reactions
         for mt in (4, 16, 103, 104, 105, 106, 107):
             self._mergeReaction(mt, verbose)
@@ -142,13 +145,14 @@ class GENDF:
         if not len(target_list):
             return
         
-        print("Merge sub reactions to MT={}, {} reaction".format(mt_parent, REACTION_TYPE[mt_parent]))
-        print("List of valid sub reactions")
-        reaction_repr_list = ""
-        for mt in target_list:
-            reaction_repr_list += '{}, '.format(REACTION_TYPE[mt])
-        for i in range(int(np.ceil(len(reaction_repr_list) / 80))):
-            print('{}'.format(reaction_repr_list[i * 80: (i + 1) * 80]))    
+        if verbose:
+            print("Merge sub reactions to MT={}, {} reaction".format(mt_parent, REACTION_TYPE[mt_parent]))
+            print("List of valid sub reactions")
+            reaction_repr_list = ""
+            for mt in target_list:
+                reaction_repr_list += '{}, '.format(REACTION_TYPE[mt])
+            for i in range(int(np.ceil(len(reaction_repr_list) / 80))):
+                print('{}'.format(reaction_repr_list[i * 80: (i + 1) * 80]))    
 
         for mf in GENDF_MF_TO_MULT:
             if GENDF_MF_TO_MULT[mf][mt] > 0:
