@@ -66,7 +66,7 @@ target_list = os.listdir(input_path)
 output_list = []
 for file in target_list:
     file      = os.path.join(input_path, file)
-    endf_data = ENDF(file, verbose=False)
+    endf_data = ENDF(file, verbose=False, read_only_header=True)
     endf_desc = endf_data.desc()
     za        = endf_desc.za()
     meta      = endf_desc.isomericNumber()

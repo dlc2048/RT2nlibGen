@@ -12,7 +12,7 @@ from src.endf.file3 import CrossSection
 
 
 class ENDF:
-    def __init__(self, file_name: str, verbose: bool = False):
+    def __init__(self, file_name: str, verbose: bool = False, read_only_header: bool = False):
         stream = ENDFIfstream(file_name, verbose)
 
         self._reactions = {}
@@ -28,6 +28,8 @@ class ENDF:
             elif mf == 1:  # FILE1
                 if mt == 451:
                     self._desc = DescData(RecCont(text), stream)
+                    if read_only_header:
+                        break
                 else:
                     pass
             elif mf == 3:  # FILE3
