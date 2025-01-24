@@ -7,19 +7,21 @@ this code is part of the RT2 project
 """
 
 import numpy as np
+import re
 
 
 def stringToEndfFloat(string: str) -> float:
     """
     convert endf-float format to scientific notation
     """
-    if "Inf" in string:
-        string = "0.0"
+
     if not string.strip():
-        string = "0.0"
-    if "." in string:
-        string = string[0] + string[1:].replace("+", "e+", 1)
-        string = string[0] + string[1:].replace("-", "e-", 1)
+        return 0.0
+    
+    if string.strip().lower() == 'inf':
+        return 1e+20
+    
+    string = re.sub(r'(\d)([+-]\d+)', r'\1e\2', string)
     return float(string)
 
 

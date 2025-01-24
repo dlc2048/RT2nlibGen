@@ -490,7 +490,7 @@ class GENDF:
     def write(self, file_name: str):
         file = Fortran(file_name, mode='w')
         # number of angle group
-        file.write(np.array((self._eabin.shape[1]), dtype=np.int32)
+        file.write(np.array((self._eabin.shape[1]), dtype=np.int32))
         # XS
         file.write(self._reaction[1].xs().astype(np.float32))
         # reaction
