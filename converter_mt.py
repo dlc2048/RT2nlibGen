@@ -67,8 +67,9 @@ output_list = []
 for file in target_list:
     file      = os.path.join(input_path, file)
     endf_data = ENDF(file, verbose=False)
-    za        = endf_data.za()
-    meta      = endf_data.isomericNumber()
+    endf_desc = endf_data.desc()
+    za        = endf_desc.za()
+    meta      = endf_desc.isomericNumber()
     za_str    = str(za)
     if meta:
         za_str += 'm{}'.format(meta)
