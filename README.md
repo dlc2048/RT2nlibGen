@@ -1,2 +1,2 @@
-# RT2nibGen
+# RT2nlibGen
 RT2 Groupwised Neutron Library Generator
