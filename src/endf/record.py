@@ -18,7 +18,7 @@ def stringToEndfFloat(string: str) -> float:
     if not string.strip():
         return 0.0
     
-    if string.strip().lower() == 'inf':
+    if 'inf' in string.strip().lower():
         return 1e+20
     
     string = re.sub(r'(\d)([+-]\d+)', r'\1e\2', string)
