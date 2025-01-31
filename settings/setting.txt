@@ -1,5 +1,3 @@
-endf_path           endf/n
-thermal_path        endf/kernel
 njoy_executable     /home/dlc2048/NJOY21/build/njoy21
 njoy_ngroup         settings/endf7_260_egn.bin
 njoy_ggroup         settings/endf7_260_egg.bin

@@ -175,3 +175,15 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+*
+!settings/
+!src/
+!.gitgnore
+!converter.py
+!converter_thermal.py
+!converter_mt.py
+!mass_table_generator.py
+!subprocess.empty.py
+!README.md
+

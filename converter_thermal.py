@@ -16,12 +16,14 @@ from src.endf.endf import ENDF
 
 
 def printHelp():
-    print("Parameters: --input        | -i  <filename>    ENDF input                        ")
-    print("            --output       | -o  <filename>    Output of Group-wised library     ")
-    print("            --workspace    | -w  <path>        NJOY working directory            ")
-    print("            --temperature  | -t  <float>       Temperature for Doppler broadening")
-    print("            --equiprobable | -e  <int>         Number of equiprobable angle bins ")
-    print("            --help         | -h                Print this message                ")
+    print("Parameters: --input        | -i  <filename>    ENDF input                         ")
+    print("            --scattering   | -s  <filename>    ENDF S(a,b) table                  ")
+    print("            --output       | -o  <filename>    Output of Group-wised library      ")
+    print("            --workspace    | -w  <path>        NJOY working directory             ")
+    print("            --factor       | -f  <float>       Molecular factor (XS normalization)")
+    print("            --temperature  | -t  <float>       Temperature for Doppler broadening ")
+    print("            --equiprobable | -e  <int>         Number of equiprobable angle bins  ")
+    print("            --help         | -h                Print this message                 ")
 
 
 # Prompt
@@ -39,6 +41,15 @@ if not argv:
 else:
     input_path = argv[0]
 
+argv = Prompt()["--scattering", "-s"]
+scatt_path = ""
+if not argv:
+    print("S(a,b) input path must be specified")
+    printHelp()
+    exit(1)
+else:
+    scatt_path = argv[0]
+
 argv = Prompt()["--output", "-o"]
 output_path = ""
 if not argv:
@@ -52,6 +63,11 @@ argv = Prompt()["--workspace", "-w"]
 working_directory = None
 if argv:
     working_directory = argv[0]
+
+argv = Prompt()["--factor", "-f"]
+factor = 1.0
+if argv:
+    factor = float(argv[0])
 
 argv = Prompt()["--temperature", "-t"]
 temperature = 293.6
@@ -80,6 +96,12 @@ endf_desc = endf_data.desc()
 mat = endf_desc.mat()
 za  = endf_desc.za()
 
+scatt_data = ENDF(scatt_path, verbose=False)
+scatt_desc = scatt_data.desc()
+
+mat_thermal = scatt_desc.mat()
+za_thermal  = scatt_desc.za()
+
 # detect
 print("*** ENDF MAT={}, ISOTOPE ZA={} IS DETECTED ***".format(mat, za))
 
@@ -94,10 +116,13 @@ njoy_input_file  = ENV["njoy_input"]
 njoy_output_file = ENV["njoy_output"]
 
 njoy_target      = int(ENV["njoy_target"])
+njoy_kernel      = int(ENV["njoy_kernel"])
 njoy_result      = int(ENV["njoy_GENDF"])
 njoy_target_file = os.path.join('tape{}'.format(njoy_target))
+njoy_kernel_file = os.path.join('tape{}'.format(njoy_kernel))
 njoy_result_file = os.path.join('tape{}'.format(njoy_result))
 shutil.copy(input_path, os.path.join(working_directory, njoy_target_file))
+shutil.copy(scatt_path, os.path.join(working_directory, njoy_kernel_file))
 
 os.chdir(working_directory)
 pathlib.Path(njoy_output_file).unlink(missing_ok=True)
@@ -109,7 +134,7 @@ ninput.setPhotonGroup(egg)
 ninput.moder(njoy_target, -21)
 ninput.reconr(-21, -22, 0.0005)
 ninput.broadr(-21, -22, -23, 0.0005)
-ninput.thermr(0, -23, -24, 0, 1, 0, 0.005, 4)
+ninput.thermr(njoy_kernel, -23, -24, mat_thermal, 1, 0, 0.005, 4)
 ninput.groupr(-21, -24, -30, 1, 1, 7, 8, 1e7)
 ninput.moder(-30, njoy_result)
 ninput.stop()
@@ -126,7 +151,7 @@ with subprocess.Popen([ENV["njoy_executable"],
         else:
             raise OSError
 
-os.chdir('..')        
+os.chdir('..')
 
 print("*** GENDF data processing ***")
 gendf_data = GENDF(os.path.join(working_directory, njoy_result_file), nebins, endf_data, verbose=False)
