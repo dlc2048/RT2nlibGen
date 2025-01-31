@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from src.endf.desc import REACTION_TYPE
 from src.endf.record import RecText, RecCont, RecList, RecTab1, RecTab2
+from src.prompt import info
 
 
 class ENDFIfstream:
@@ -16,7 +17,7 @@ class ENDFIfstream:
 
     def log(self, line: str):
         if self._verbose:
-            print(line)
+            print(info(line))
 
     def _getline(self) -> RecText | None:
         line = self._stream.readline()

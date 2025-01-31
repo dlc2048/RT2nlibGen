@@ -21,6 +21,7 @@ def printHelp():
     print("            --workspace    | -w  <path>        NJOY working directory            ")
     print("            --temperature  | -t  <float>       Temperature for Doppler broadening")
     print("            --equiprobable | -e  <int>         Number of equiprobable angle bins ")
+    print("            --verbose      | -v                Activate verbose log               ")
     print("            --help         | -h                Print this message                ")
 
 
@@ -64,6 +65,11 @@ if not argv:
     printHelp()
     exit(1)
 nebins = int(argv[0])
+
+argv    = Prompt()["--verbose", "-v"]
+verbose = False
+if argv is not None:
+    verbose = True
 
 getSetting("settings/setting.txt", ENV)
 
@@ -129,7 +135,7 @@ with subprocess.Popen([ENV["njoy_executable"],
 os.chdir('..')        
 
 print("*** GENDF data processing ***")
-gendf_data = GENDF(os.path.join(working_directory, njoy_result_file), nebins, endf_data, verbose=False)
+gendf_data = GENDF(os.path.join(working_directory, njoy_result_file), nebins, endf_data, verbose=verbose)
 print('*** Write data "{}" ***'.format(output_path))
 gendf_data.write(output_path)
 

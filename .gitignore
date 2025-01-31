@@ -25,10 +25,7 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-endf/*
-out/
-thread*/
-
+*/
 
 MANIFEST
 
@@ -176,12 +173,12 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-*
 !settings/
 !src/
 !.gitgnore
 !converter.py
 !converter_thermal.py
+!converter_thermal_mt.py
 !converter_mt.py
 !mass_table_generator.py
 !subprocess.empty.py

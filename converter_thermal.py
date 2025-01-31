@@ -20,9 +20,9 @@ def printHelp():
     print("            --scattering   | -s  <filename>    ENDF S(a,b) table                  ")
     print("            --output       | -o  <filename>    Output of Group-wised library      ")
     print("            --workspace    | -w  <path>        NJOY working directory             ")
-    print("            --factor       | -f  <float>       Molecular factor (XS normalization)")
     print("            --temperature  | -t  <float>       Temperature for Doppler broadening ")
     print("            --equiprobable | -e  <int>         Number of equiprobable angle bins  ")
+    print("            --verbose      | -v                Activate verbose log               ")
     print("            --help         | -h                Print this message                 ")
 
 
@@ -64,11 +64,6 @@ working_directory = None
 if argv:
     working_directory = argv[0]
 
-argv = Prompt()["--factor", "-f"]
-factor = 1.0
-if argv:
-    factor = float(argv[0])
-
 argv = Prompt()["--temperature", "-t"]
 temperature = 293.6
 if argv:
@@ -81,6 +76,11 @@ if not argv:
     exit(1)
 nebins = int(argv[0])
 
+argv    = Prompt()["--verbose", "-v"]
+verbose = False
+if argv is not None:
+    verbose = True
+
 getSetting("settings/setting.txt", ENV)
 
 egn = Fortran(ENV["njoy_ngroup"]).read(np.float32)
@@ -90,17 +90,19 @@ egg = Fortran(ENV["njoy_ggroup"]).read(np.float32)
 egn = egn * 1e6
 egg = egg * 1e6
 
-endf_data = ENDF(input_path, verbose=False)
+endf_data = ENDF(input_path, verbose=False, read_only_header=True)
 endf_desc = endf_data.desc()
 
 mat = endf_desc.mat()
 za  = endf_desc.za()
 
-scatt_data = ENDF(scatt_path, verbose=False)
+scatt_data = ENDF(scatt_path, verbose=False, read_only_header=True)
 scatt_desc = scatt_data.desc()
 
 mat_thermal = scatt_desc.mat()
 za_thermal  = scatt_desc.za()
+sab_str     = scatt_desc.zsymam().__repr__()
+sab_str     = sab_str.strip()
 
 # detect
 print("*** ENDF MAT={}, ISOTOPE ZA={} IS DETECTED ***".format(mat, za))
@@ -154,7 +156,7 @@ with subprocess.Popen([ENV["njoy_executable"],
 os.chdir('..')
 
 print("*** GENDF data processing ***")
-gendf_data = GENDF(os.path.join(working_directory, njoy_result_file), nebins, endf_data, verbose=False)
+gendf_data = GENDF(os.path.join(working_directory, njoy_result_file), nebins, endf_data, sab=sab_str, verbose=verbose)
 print('*** Write data "{}" ***'.format(output_path))
 gendf_data.write(output_path)
 

@@ -6,14 +6,13 @@ convert GENDF file that obtained from NJOY21 to RT2 groupwised neutron library
 this code is part of the RT2 project
 """
 
-
 import numpy as np
 from tqdm import tqdm
 
 from src.endf.endf import ENDF
-
 from src.algorithm import AliasTable, legendreToEquibin
 from src.fortran import Fortran
+from src.prompt import error, info, warning
 from src.endf.stream import ENDFIfstream
 from src.endf.desc import REACTION_TYPE, MTHierarchy
 from src.gendf.desc import GENDF_MF_TYPE, GENDF_MF_TO_MULT, GENDF_MF_TO_ZA
@@ -22,8 +21,10 @@ from src.gendf.reaction import CommonFile, Reaction, mergeComponents
 
 
 class GENDF:
-    def __init__(self, file_name: str, nebins: int, endf: ENDF, verbose: bool = False):
-        self._reaction  = {}
+    def __init__(self, file_name: str, nebins: int, endf: ENDF, sab: str = "", verbose: bool = False):
+        self._desc_origin = endf.desc()
+        self._sab         = sab + "\0"
+        self._reaction    = {}
         # reaction
         self._mt_list   = []    # possible MT reaction lists
         self._ralias    = None  # Reaction alias index
@@ -68,7 +69,7 @@ class GENDF:
     @staticmethod
     def _streamVerbose(mt: int, mf: int, verbose: bool):
         if verbose:
-            print('Data block found for MT={}, MT={}, {} data for {}'.format(mt, mf, GENDF_MF_TYPE[mf], REACTION_TYPE[mt]))
+            print(info('Data block found for MT={}, MT={}, {} data for {}'.format(mt, mf, GENDF_MF_TYPE[mf], REACTION_TYPE[mt])))
 
     def _readStream(self, file_name: str, endf: ENDF, verbose: bool):
         stream = ENDFIfstream(file_name, verbose)
@@ -106,7 +107,7 @@ class GENDF:
 
     def _mergeThermal(self, verbose: bool):
         if verbose:
-            print('Merge MT=221 (thermal) data to MT=2 (elastic)')
+            print(info('Merge MT=221 (thermal) data to MT=2 (elastic)'))
         thermal = self._reaction[221][6]
         elastic = self._reaction[2][6]
 
@@ -129,7 +130,7 @@ class GENDF:
         cont_merge[mask2]    = cont2[mask2]
         cont_merge[mask2,0] += offset1 - offset2
         # check integrity
-        assert np.all(mask1 + mask2) and not np.any(mask1 * mask2), 'Thermal scattering matrix summation failed in {}.'.format(self.__repr__())
+        assert np.all(mask1 + mask2) and not np.any(mask1 * mask2), error('Thermal scattering matrix summation failed in {}.'.format(self.__repr__()))
         mat_merge = np.append(mat1[:offset1], mat2[offset2:], axis=0)
         mul_merge = np.zeros_like(mul1)
         mul_merge[mask1] = mul1[mask1]
@@ -153,13 +154,13 @@ class GENDF:
             return
         
         if verbose:
-            print("Merge sub reactions to MT={}, {} reaction".format(mt_parent, REACTION_TYPE[mt_parent]))
+            print(info("Merge sub reactions to MT={}, {} reaction".format(mt_parent, REACTION_TYPE[mt_parent])))
             print("List of valid sub reactions")
             reaction_repr_list = ""
             for mt in target_list:
                 reaction_repr_list += '{}, '.format(REACTION_TYPE[mt])
             for i in range(int(np.ceil(len(reaction_repr_list) / 80))):
-                print('{}'.format(reaction_repr_list[i * 80: (i + 1) * 80]))    
+                print(info('{}'.format(reaction_repr_list[i * 80: (i + 1) * 80])))
 
         for mf in GENDF_MF_TO_MULT:
             if GENDF_MF_TO_MULT[mf][mt] > 0:
@@ -186,7 +187,7 @@ class GENDF:
     def _prepareReactionTable(self, verbose: bool):
         # prepare target MT list
         if verbose:
-            print("Search possible reaction branch ...")
+            print(info("Search possible reaction branch ..."))
         mt_list = self.keys()
         mt_val  = set(mt_list)
         for mt in mt_list:
@@ -207,7 +208,7 @@ class GENDF:
 
         # prepare alias table
         if verbose:
-            print("Prepare MT sampling alias table ...")
+            print(info("Prepare MT sampling alias table ..."))
         alias_shape  = (self._desc.ngn(), len(self._mt_list))
         self._ralias = -np.ones(alias_shape, dtype=int)
         self._rprob  = -np.ones(alias_shape, dtype=float)
@@ -227,7 +228,7 @@ class GENDF:
 
     def _prepareReactionInstruction(self, verbose: bool):
         if verbose:
-            print("Prepare reaction instructions ...")
+            print(info("Prepare reaction instructions ..."))
         for mt in self._mt_list:
             stape = []
 
@@ -251,7 +252,7 @@ class GENDF:
                     stape += [mf] * multiplicity
                 else:
                     if verbose:
-                        print("WARNING: secondary data missing for MT={}, MF={}, {} production in {}".format(mt, mf, GENDF_MF_TYPE[mf], REACTION_TYPE[mt]))
+                        print(warning("secondary data missing for MT={}, MF={}, {} production in {}".format(mt, mf, GENDF_MF_TYPE[mf], REACTION_TYPE[mt])))
 
             # gamma
             multiplicity = 0.0
@@ -317,7 +318,7 @@ class GENDF:
         self._gprob    = np.empty(ntotal, dtype=float)
 
         if verbose:
-            print('Prepare unified data library ...')
+            print(info('Prepare unified data library ...'))
             print('Number of neutron group     : {}'.format(ngn))
             print('Length of alias table       : {}'.format(self._galias.shape[0]))
             print('Length of equiprobable table: {}'.format(self._eabin.shape[0]))
@@ -325,7 +326,7 @@ class GENDF:
 
         # fill control card and eabin
         if verbose:
-            print('Prepare unified control card and polynomials ...')
+            print(info('Prepare unified control card and polynomials ...'))
         iterator = enumerate(offset)
         if verbose:
             iterator = tqdm(iterator)
@@ -344,7 +345,7 @@ class GENDF:
 
         # Link sampling instruction tape to control card
         if verbose:
-            print('Link sampling instruction tape to control card ...')
+            print(info('Link sampling instruction tape to control card ...'))
         iterator = range(len(self._mt_list))
         if verbose:
             iterator = tqdm(iterator)
@@ -363,14 +364,14 @@ class GENDF:
                         break
                     else:
                         current_mt = MTHierarchy[current_mt].parent()
-                assert data_found, 'Transition data not found for MT={}, MF={}'.format(mt, mf)
+                assert data_found, error('Transition data not found for MT={}, MF={}'.format(mt, mf))
                 cc_pos = offset_keys.index(okey)
                 stape  = mf + (cc_pos << 5)  # pack 5 bit MF + 27 bit position
                 self._stape[j + soff] = stape
 
     def _prepareUnifiedMultiplicityAndDeposition(self, verbose: bool):
         if verbose:
-            print('Generate global multiplicity & deposition table ...')
+            print(info('Generate global multiplicity & deposition table ...'))
         ngn = self._desc.ngn()
         egn = self._desc.egn()
         egg = self._desc.egg()
@@ -405,13 +406,13 @@ class GENDF:
                         break
                     else:
                         current_mt = MTHierarchy[current_mt].parent()
-                assert gamma_found, 'Gamma data not found for MT={}'.format(mt)
+                assert gamma_found, error('Gamma data not found for MT={}'.format(mt))
 
             # deposition
             reaction = self._reaction[mt]
             if 26 in reaction.keys():  # Tabulated depo data exist
                 if verbose:
-                    print('Energy deposition data found for MT={}, {} reaction'.format(mt, REACTION_TYPE[mt]))
+                    print(info('Energy deposition data found for MT={}, {} reaction'.format(mt, REACTION_TYPE[mt])))
                 for group in range(ngn):
                     mask        = reaction[26].probabilityMask(group)
                     eseg[group] = np.sum(egn_mean * mask)
@@ -423,11 +424,11 @@ class GENDF:
                         za -= GENDF_MF_TO_ZA[mf_this] * count_this
                 if not za:
                     if verbose:
-                        print('Residual target remnant not found for MT={}, {} reaction. Energy deposition is set to 0.'.format(mt, REACTION_TYPE[mt]))
+                        print(info('Residual target remnant not found for MT={}, {} reaction. Energy deposition is set to 0.'.format(mt, REACTION_TYPE[mt])))
                     eseg[:] = 0.0
                 else:
                     if verbose:
-                        print('Energy deposition data not found for MT={}, {} reaction. Using Q-value to calculate deposition.'.format(mt, REACTION_TYPE[mt]))
+                        print(info('Energy deposition data not found for MT={}, {} reaction. Using Q-value to calculate deposition.'.format(mt, REACTION_TYPE[mt])))
                     q_value = reaction.qvalue()
                     eseg[:] = q_value
                     for group in range(ngn):
@@ -459,7 +460,7 @@ class GENDF:
                
     def _generateGroupAlias(self, verbose: bool):
         if verbose:
-            print('Generate group alias table ...')
+            print(info('Generate group alias table ...'))
         iterator = self._gcontrol
         if verbose:
             iterator = tqdm(iterator)
@@ -473,7 +474,7 @@ class GENDF:
 
     def _generateEquiprobAngles(self, nebins: int, verbose: bool):
         if verbose:
-            print('Generate equiprobable angular distribution ...')
+            print(info('Generate equiprobable angular distribution ...'))
         legpoly_list = self._eabin
         self._eabin  = np.empty((self._eabin.shape[0], nebins + 1), dtype=float)
         modifier     = (np.arange(0, legpoly_list.shape[1], 1) * 2 + 1) / 2   # ENDF legendre coeff
@@ -489,8 +490,12 @@ class GENDF:
     
     def write(self, file_name: str):
         file = Fortran(file_name, mode='w')
-        # number of angle group
-        file.write(np.array((self._eabin.shape[1]), dtype=np.int32))
+        # header
+        file.write(np.array((self._desc.za()), dtype=np.int32))                     # ZA
+        file.write(np.array((self._desc_origin.isomericNumber()), dtype=np.int32))  # isomeric number
+        file.write(np.array((self._desc_origin.temperature()), dtype=np.float32))   # temperature
+        file.write(np.fromstring(self._sab, dtype=np.uint8))                        # SAB name
+        file.write(np.array((self._eabin.shape[1]), dtype=np.int32))                # number of angle group
         # XS
         file.write(self._reaction[1].xs().astype(np.float32))
         # reaction

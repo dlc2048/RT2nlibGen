@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from src.prompt import error
+
 
 class Fortran:
     def __init__(self, file_name: str, mode="r"):
@@ -23,8 +25,8 @@ class Fortran:
         seg = self._file.read(4)
         blen2 = np.frombuffer(seg, dtype=np.int32)[0]
 
-        if blen1 != blen2:
-            raise ValueError
+        assert blen1 == blen2, error('Fortran data dimension identifier is corrupted')
+
         if dtype == str:
             return buffer.decode()
         else:

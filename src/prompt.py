@@ -9,6 +9,18 @@ import sys
 import six
 
 
+def warning(msg: str) -> str:
+    return "[WARNING] {}".format(msg)
+
+
+def error(msg: str) -> str:
+    return "[ERROR] {}".format(msg)
+
+
+def info(msg: str) -> str:
+    return "[INFO] {}".format(msg)
+
+
 class Prompt:
     def __init__(self, dim: int = 1):
         self._dim = dim

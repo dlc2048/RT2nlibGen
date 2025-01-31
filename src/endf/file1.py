@@ -8,13 +8,13 @@ this code is part of the RT2 project
 
 
 from src.endf.stream import ENDFIfstream, FileInterface
-from src.endf.record import RecText, RecCont, RecList, RecTab1, RecTab2
+from src.endf.record import RecCont
 from src.endf.param import ZSYMAM
 from src.endf.desc import REACTION_TYPE
 
 
 class DescData(FileInterface):
-    def __init__(self, head: RecCont, stream: ENDFIfstream):
+    def __init__(self, head: RecCont, stream: ENDFIfstream, verbose: bool = False):
         super().__init__(1, 451)
         self._mat  = head.mat()
         self._za   = int(head.c1())
@@ -45,7 +45,7 @@ class DescData(FileInterface):
         nxc = cont.n2()
         # Text
         text = stream.text()
-        self._zsymam = ZSYMAM(text.hl()[:11])
+        self._zsymam = ZSYMAM(text.hl()[:11], verbose=verbose)
         self._alab   = text.hl()[11:22]
         self._edate  = text.hl()[22:32]
         self._auth   = text.hl()[33:66]
@@ -75,6 +75,9 @@ class DescData(FileInterface):
     
     def mass(self) -> int:
         return self._awr
+    
+    def zsymam(self) -> ZSYMAM:
+        return self._zsymam
     
     def fissile(self) -> bool:
         return self._lfi

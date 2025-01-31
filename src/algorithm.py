@@ -13,6 +13,7 @@ from scipy.integrate import quad, trapezoid
 from scipy.optimize import root_scalar
 
 from src import constants as const
+from src.prompt import error, warning
 
 
 def legendreToEquibin(coeff: np.ndarray, nbin: int, mu_min: float=-1.0, mu_max: float=1.0) -> tuple:
@@ -241,7 +242,6 @@ def getInterpFtnCumulValue(xx: np.ndarray, yy: np.ndarray, area: float) -> float
         raise ValueError('Cannot find solution x')
 
 
-
 class AliasTable:
     def __init__(self, domain, prob):
         """
@@ -256,7 +256,7 @@ class AliasTable:
         self._prob_table  = np.copy(prob)
         prob_tag = np.ones(prob.shape, dtype=bool)
 
-        assert len(prob), 'Alias table got empty probablity table'
+        assert len(prob), error('Alias table got empty probablity table')
 
         mean = np.sum(prob) / len(prob)
         # set alias table
