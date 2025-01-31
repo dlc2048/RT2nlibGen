@@ -90,7 +90,7 @@ for file in os.listdir(scatt_path):
     endf_data = ENDF(os.path.join(scatt_path, file), verbose=False, read_only_header=True)
     endf_desc = endf_data.desc()
     mat       = endf_desc.mat()
-    sab       = endf_desc.zsymam().__repr__().strip()
+    sab       = endf_desc.zsymam().__repr__().strip().replace(' ', '')
     scatt_list[mat] = (file, sab)
 
 
@@ -136,7 +136,7 @@ while True:
             input_file = os.path.join(input_path,  input_list[target[1]])
             scatt_file = os.path.join(scatt_path,  scatt_list[target[0]][0])
             # output syntax
-            out_name   = "{}_{}K_{}.bin".format(za, int(round(target[2])), scatt_list[target[0]][1])
+            out_name   = "{}_{}K_{}.bin".format(target[1], int(round(target[2])), scatt_list[target[0]][1])
             out_file   = os.path.join(output_path, out_name)
             command    = [
                 'python', 'converter_thermal.py', 

@@ -102,7 +102,7 @@ scatt_desc = scatt_data.desc()
 mat_thermal = scatt_desc.mat()
 za_thermal  = scatt_desc.za()
 sab_str     = scatt_desc.zsymam().__repr__()
-sab_str     = sab_str.strip()
+sab_str     = sab_str.strip().replace(' ', '')
 
 # detect
 print("*** ENDF MAT={}, ISOTOPE ZA={} IS DETECTED ***".format(mat, za))
