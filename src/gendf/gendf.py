@@ -21,8 +21,9 @@ from src.gendf.reaction import CommonFile, Reaction, mergeComponents
 
 
 class GENDF:
-    def __init__(self, file_name: str, nebins: int, endf: ENDF, sab: str = "", verbose: bool = False):
+    def __init__(self, file_name: str, nebins: int, temperature: float, endf: ENDF, sab: str = "", verbose: bool = False):
         self._desc_origin = endf.desc()
+        self._temperature = temperature
         self._sab         = sab + "\0"
         self._reaction    = {}
         # reaction
@@ -493,7 +494,7 @@ class GENDF:
         # header
         file.write(np.array((self._desc.za()), dtype=np.int32))                     # ZA
         file.write(np.array((self._desc_origin.isomericNumber()), dtype=np.int32))  # isomeric number
-        file.write(np.array((self._desc_origin.temperature()), dtype=np.float32))   # temperature
+        file.write(np.array((self._temperature), dtype=np.float32))                 # temperature
         file.write(np.fromstring(self._sab, dtype=np.uint8))                        # SAB name
         file.write(np.array((self._eabin.shape[1]), dtype=np.int32))                # number of angle group
         # XS
