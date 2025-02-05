@@ -21,7 +21,7 @@ def printHelp():
     print("            --workspace    | -w  <path>        NJOY working directory            ")
     print("            --temperature  | -t  <float>       Temperature for Doppler broadening")
     print("            --equiprobable | -e  <int>         Number of equiprobable angle bins ")
-    print("            --verbose      | -v                Activate verbose log               ")
+    print("            --verbose      | -v                Activate verbose log              ")
     print("            --help         | -h                Print this message                ")
 
 

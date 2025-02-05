@@ -8,6 +8,7 @@ from src.endf.stream import ENDFIfstream, FileInterface
 from src.endf.record import RecText, RecCont
 from src.endf.desc import REACTION_TYPE
 from src.gendf.desc import GENDF_MF_TYPE, GENDF_MF_TO_MULT
+from src.constants import MAX_MULTIPLICITY
 
 class CommonFile(FileInterface):
     def __init__(self, head: RecText, stream: ENDFIfstream):
@@ -137,8 +138,11 @@ class Transition(Secondary):
             if total == 0.0:  # Invalid group 
                 self._control[group] = (-1, -1, -1)
                 continue
-                
-            self._multiplicity[group] = 0 if xs == 0.0 else total / xs
+            
+            mult = total / xs
+            if mult > MAX_MULTIPLICITY:  # NJOY21 conversion error
+                mult = 1.0
+            self._multiplicity[group] = 0 if xs == 0.0 else mult
             seg /= total
 
     def normalizeMF13(self) -> np.ndarray:
