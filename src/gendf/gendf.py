@@ -119,9 +119,15 @@ class GENDF:
         if verbose:
             print(info('Molecular number is estimated to be {}').format(mfactor))
 
+        xs_modifier = np.copy(elastic_xs)
 
         elastic_xs[:len_thermal] = thermal_xs[:len_thermal] * mfactor
         self._reaction[2].setXSArr(elastic_xs)
+
+        xs_modifier = self._reaction[2].xs() - xs_modifier
+
+        xs_total = self._reaction[1].xs() + xs_modifier
+        self._reaction[1].setXSArr(xs_total)
 
         thermal = self._reaction[221][6]
         elastic = self._reaction[2][6]
