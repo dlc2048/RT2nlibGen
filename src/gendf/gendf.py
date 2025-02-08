@@ -109,6 +109,33 @@ class GENDF:
     def _mergeThermal(self, verbose: bool):
         if verbose:
             print(info('Merge MT=221 (thermal) data to MT=2 (elastic)'))
+
+        # append XS of MT=221 to MT=2
+        thermal_xs = self._reaction[221].xs()
+        elastic_xs = self._reaction[2].xs()
+
+        len_thermal = np.argmax(thermal_xs == 0.0)
+
+        thermal_last = thermal_xs[len_thermal - 1]
+        elastic_last = elastic_xs[len_thermal - 1]
+
+        # spect molecular number
+        mole     = 0
+        dif_last = 1e10
+        while mole < 1000:
+            dif_now   = abs(thermal_last / elastic_last / (mole + 1) - 1)
+            if dif_last < dif_now:
+                break
+            dif_last  = dif_now
+            mole     += 1
+
+        if verbose:
+            print(info('Molecular number is estimated to be {}').format(mole))
+
+
+        elastic_xs[:len_thermal] = thermal_xs[:len_thermal] / mole
+        self._reaction[2].setXSArr(elastic_xs)
+
         thermal = self._reaction[221][6]
         elastic = self._reaction[2][6]
 

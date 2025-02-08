@@ -297,6 +297,9 @@ class Reaction:
         self._xs   = xs_gen.xs()               # XS vector
         self._mult = np.zeros(self._xs.shape)  # Multiplicity vector
 
+    def setXSArr(self, xs: np.ndarray):
+        self._xs = xs
+
     def addComponent(self, mf: int, trans_file: CommonFile):
         self._comp[mf] = SecondaryFactory.interpret(mf, self._ngn, self._ngg, trans_file)
 
