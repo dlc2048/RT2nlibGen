@@ -115,10 +115,11 @@ with open(target_path) as file:
             continue
         if items[0][0] == '#':
             continue
-        mat  = int(items[0])
-        za   = int(items[1])
-        temp = float(items[2])
-        target_list += [[mat, za, temp]]
+        mat     = int(items[0])
+        za      = int(items[1])
+        temp    = float(items[2])
+        mfactor = float(items[3])
+        target_list += [[mat, za, temp, mfactor]]
 
 while True:
     stalled = False
@@ -145,7 +146,8 @@ while True:
                 '-o', out_file, 
                 '-w', 'thread{}'.format(i), 
                 '-e', str(nebins), 
-                '-t', str(target[2])
+                '-t', str(target[2]),
+                '-m', str(target[3])
             ]
             stalled = True
             print('Convert ENDF MAT {} for isotope {} at {} K'.format(target[0], target[1], target[2]))

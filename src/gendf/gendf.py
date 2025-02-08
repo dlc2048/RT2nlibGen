@@ -21,7 +21,7 @@ from src.gendf.reaction import CommonFile, Reaction, mergeComponents
 
 
 class GENDF:
-    def __init__(self, file_name: str, nebins: int, temperature: float, endf: ENDF, sab: str = "", verbose: bool = False):
+    def __init__(self, file_name: str, nebins: int, temperature: float, endf: ENDF, sab: str = "", mfactor: float = 1.0, verbose: bool = False):
         self._desc_origin = endf.desc()
         self._temperature = temperature
         self._sab         = sab + "\0"
@@ -46,7 +46,7 @@ class GENDF:
         self._mergeSpectrum()
         # merge termal neutron scattering matrix to elastic scattering {MT=221 -> MT=2}
         if 221 in self._reaction.keys():
-            self._mergeThermal(verbose)
+            self._mergeThermal(verbose, mfactor)
         # remove production cross section
         for mt in range(202, 208):
             if mt in self._reaction.keys():
@@ -106,7 +106,7 @@ class GENDF:
             self._reaction[mt].normalize()
             self._reaction[mt].merge()
 
-    def _mergeThermal(self, verbose: bool):
+    def _mergeThermal(self, verbose: bool, mfactor: float):
         if verbose:
             print(info('Merge MT=221 (thermal) data to MT=2 (elastic)'))
 
@@ -116,24 +116,11 @@ class GENDF:
 
         len_thermal = np.argmax(thermal_xs == 0.0)
 
-        thermal_last = thermal_xs[len_thermal - 1]
-        elastic_last = elastic_xs[len_thermal - 1]
-
-        # spect molecular number
-        mole     = 0
-        dif_last = 1e10
-        while mole < 1000:
-            dif_now   = abs(thermal_last / elastic_last / (mole + 1) - 1)
-            if dif_last < dif_now:
-                break
-            dif_last  = dif_now
-            mole     += 1
-
         if verbose:
-            print(info('Molecular number is estimated to be {}').format(mole))
+            print(info('Molecular number is estimated to be {}').format(mfactor))
 
 
-        elastic_xs[:len_thermal] = thermal_xs[:len_thermal] / mole
+        elastic_xs[:len_thermal] = thermal_xs[:len_thermal] * mfactor
         self._reaction[2].setXSArr(elastic_xs)
 
         thermal = self._reaction[221][6]

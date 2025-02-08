@@ -21,6 +21,7 @@ def printHelp():
     print("            --output       | -o  <filename>    Output of Group-wised library      ")
     print("            --workspace    | -w  <path>        NJOY working directory             ")
     print("            --temperature  | -t  <float>       Temperature for Doppler broadening ")
+    print("            --molecule     | -m  <float>       Molecular number factor            ")
     print("            --equiprobable | -e  <int>         Number of equiprobable angle bins  ")
     print("            --verbose      | -v                Activate verbose log               ")
     print("            --help         | -h                Print this message                 ")
@@ -66,6 +67,11 @@ if argv:
 
 argv = Prompt()["--temperature", "-t"]
 temperature = 293.6
+if argv:
+    temperature = float(argv[0])
+
+argv = Prompt()["--molecule", "-m"]
+mfactor = 1.0
 if argv:
     temperature = float(argv[0])
 
@@ -156,7 +162,7 @@ with subprocess.Popen([ENV["njoy_executable"],
 os.chdir('..')
 
 print("*** GENDF data processing ***")
-gendf_data = GENDF(os.path.join(working_directory, njoy_result_file), nebins, temperature, endf_data, sab=sab_str, verbose=verbose)
+gendf_data = GENDF(os.path.join(working_directory, njoy_result_file), nebins, temperature, endf_data, sab=sab_str, mfactor=mfactor, verbose=verbose)
 print('*** Write data "{}" ***'.format(output_path))
 gendf_data.write(output_path)
 
