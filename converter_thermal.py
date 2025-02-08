@@ -73,7 +73,7 @@ if argv:
 argv = Prompt()["--molecule", "-m"]
 mfactor = 1.0
 if argv:
-    temperature = float(argv[0])
+    mfactor = float(argv[0])
 
 argv = Prompt()["--equiprobable",  "-e"]
 if not argv:
