@@ -138,7 +138,7 @@ class DistributionFunction:
 
         pcumul    = np.cumsum(pseg)
         pcum_seg  = pcumul * area_total
-        pcum_seg  = np.append(0.0, pcumul)
+        pcum_seg  = np.append(0.0, pcum_seg)
 
         t  = 0
         b  = 1
