@@ -96,8 +96,10 @@ egg = Fortran(ENV["njoy_ggroup"]).read(np.float32)
 egn = egn * 1e6
 egg = egg * 1e6
 
-endf_data = ENDF(input_path, verbose=False, read_only_header=True)
+endf_data = ENDF(input_path, verbose=False, read_only_header=False)
 endf_desc = endf_data.desc()
+
+ad = endf_data[2].ad.getDistribution(1.0)
 
 mat = endf_desc.mat()
 za  = endf_desc.za()
@@ -160,6 +162,8 @@ with subprocess.Popen([ENV["njoy_executable"],
             raise OSError
 
 os.chdir('..')
+
+GENDF.setNeutronGroup(egn)
 
 print("*** GENDF data processing ***")
 gendf_data = GENDF(os.path.join(working_directory, njoy_result_file), nebins, temperature, endf_data, sab=sab_str, mfactor=mfactor, verbose=verbose)

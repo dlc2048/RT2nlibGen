@@ -80,7 +80,7 @@ def legendreToEquibin(coeff: np.ndarray, nbin: int, mu_min: float=-1.0, mu_max: 
         root_upper = roots[i+1]
         int_lower  = ftn_integ(root_lower)
         while True:  # get answer
-            ftn_integ_t = ftn_integ - int_lower + last_area - n *area_seg
+            ftn_integ_t = ftn_integ - int_lower + last_area - n * area_seg
 
             roots_int = ftn_integ_t.roots()
             roots_int = np.real(roots_int[np.isreal(roots_int)])
@@ -107,7 +107,7 @@ def logMean(a: float | np.ndarray, b: float | np.ndarray) -> float | np.ndarray:
 
 
 
-class interp1d:
+class Interp1d:
     def __init__(self, x: np.ndarray, y: np.ndarray, inte: int):
         """
         one-dimensional interpolation, follows ENDF interpolation law
@@ -144,8 +144,14 @@ class interp1d:
             y = np.exp(log_y)
         return y
 
+    def x(self) -> np.ndarray:
+        return self._f.x
+    
+    def y(self) -> np.ndarray:
+        return self._f.y
+    
 
-class interp2d:
+class Interp2d:
     def __init__(self, x: np.ndarray, y: np.ndarray, z: np.ndarray, inte: int):
         """
         two-dimensional interpolation, follows ENDF interpolation law

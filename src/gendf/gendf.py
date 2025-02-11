@@ -19,8 +19,12 @@ from src.gendf.desc import GENDF_MF_TYPE, GENDF_MF_TO_MULT, GENDF_MF_TO_ZA
 from src.gendf.file1 import DescData
 from src.gendf.reaction import CommonFile, Reaction, mergeComponents
 
+from src.physics import energyToMuCM, muCMToLab, muLabToCM
+
 
 class GENDF:
+    __egn = None
+
     def __init__(self, file_name: str, nebins: int, temperature: float, endf: ENDF, sab: str = "", mfactor: float = 1.0, verbose: bool = False):
         self._desc_origin = endf.desc()
         self._temperature = temperature
@@ -40,10 +44,15 @@ class GENDF:
         self._galias       = None  # Group alias index
         self._gprob        = None  # Group alias probability
         self._eabin        = None  # Equiprobable angle bin
+
+        # thermal
+        self._len_thermal  = None
         
         # raw data
         self._readStream(file_name, endf, verbose)
         self._mergeSpectrum()
+        self._splitRecoil(verbose)
+        
         # merge termal neutron scattering matrix to elastic scattering {MT=221 -> MT=2}
         if 221 in self._reaction.keys():
             self._mergeThermal(verbose, mfactor)
@@ -64,8 +73,12 @@ class GENDF:
         self._prepareUnifiedNDL(verbose)
         self._prepareUnifiedMultiplicityAndDeposition(verbose)
         # generate group alias table & equiprobable angle bins
+        self._generateEquiprobAngles(endf, nebins, verbose)
         self._generateGroupAlias(verbose)
-        self._generateEquiprobAngles(nebins, verbose)
+
+    @staticmethod
+    def setNeutronGroup(egn: np.ndarray):
+        GENDF.__egn = egn
 
     @staticmethod
     def _streamVerbose(mt: int, mf: int, verbose: bool):
@@ -90,7 +103,7 @@ class GENDF:
                 if mt not in self._reaction.keys():  # push new
                     q_value = 0.0
                     if mt in endf.keys():
-                        q_value = endf[mt].reactionQvalue()
+                        q_value = endf[mt].xs.reactionQvalue()
                     
                     self._reaction[mt] = Reaction(mt, self._desc.ngn(), self._desc.ngg(), q_value)
                 segs = CommonFile(text, stream)
@@ -106,6 +119,13 @@ class GENDF:
             self._reaction[mt].normalize()
             self._reaction[mt].merge()
 
+    def _splitRecoil(self, verbose: bool):
+        za = self._desc_origin.za()
+        if za not in GENDF_MF_TO_ZA.values():
+            return
+        za
+        pass
+
     def _mergeThermal(self, verbose: bool, mfactor: float):
         if verbose:
             print(info('Merge MT=221 (thermal) data to MT=2 (elastic)'))
@@ -115,6 +135,8 @@ class GENDF:
         elastic_xs = self._reaction[2].xs()
 
         len_thermal = np.argmax(thermal_xs == 0.0)
+
+        self._len_thermal = len_thermal
 
         if verbose:
             print(info('Molecular number is estimated to be {}').format(mfactor))
@@ -493,17 +515,65 @@ class GENDF:
             self._galias[epos: epos + elen] = table.alias()
             self._gprob[epos: epos + elen]  = table.prob()
 
-    def _generateEquiprobAngles(self, nebins: int, verbose: bool):
+    def _generateEquiprobAngles(self, endf: ENDF, nebins: int, verbose: bool):
         if verbose:
             print(info('Generate equiprobable angular distribution ...'))
         legpoly_list = self._eabin
         self._eabin  = np.empty((self._eabin.shape[0], nebins + 1), dtype=float)
         modifier     = (np.arange(0, legpoly_list.shape[1], 1) * 2 + 1) / 2   # ENDF legendre coeff
 
+        # prepare MT=2 and high energy range (fast elastic)
+        # first reaction is always MT=2 elastic
+        cpos_min, _, len_min = self._gcontrol[self._len_thermal]
+        cpos_max, _, len_max = self._gcontrol[self._desc.ngn()]
+
+        egn = GENDF.__egn
+
+        # fast elastic scattering
+        awr   = self._desc_origin.mass()
+        awr   = max(1.0, awr)
+        alpha = (awr - 1)**2 / (awr + 1)**2
+
+        ad_mt2 = endf[2].ad
+        is_cm  = ad_mt2.isOnCMSystem()
+        # generate elastic equiprob
+        if verbose:
+            print(info('Angular distribution from the elastic scattering'))
+        iterator = range(self._len_thermal, self._desc.ngn())
+        if verbose:
+            iterator = tqdm(iterator)
+        for gin in iterator:
+            cpos, gmin, len_c = self._gcontrol[gin]
+
+            # get transition prob
+            pseg   = self._gprob[cpos: cpos + len_c]
+
+            ein = (egn[gin] + egn[gin + 1]) * 0.5
+
+            dist = ad_mt2.getDistribution(ein)
+
+            # get mu bins from transition probability
+            mu_min = -1.0
+            mu_max = +1.0
+            if not is_cm:
+                mu_min = muCMToLab(awr, mu_min)
+                mu_max = muCMToLab(awr, mu_max)
+
+            ebin_seg_list, _ = dist.getEquibin(nebins, mu_min, mu_max, pseg)
+
+            if is_cm:
+                ebin_seg_list = muCMToLab(awr, ebin_seg_list)
+
+            self._eabin[cpos:cpos + len_c] = ebin_seg_list
+
+        if verbose:
+            print(info('Angular distribution from the GENDF'))
         iterator = range(len(legpoly_list))
         if verbose:
             iterator = tqdm(iterator)
         for i in iterator:
+            if cpos_min <= i < cpos_max:  # skip MT=2 high energy scattering
+                continue
             poly           = legpoly_list[i]
             ebin_seg, _    = legendreToEquibin(poly * modifier, nebins)
             self._eabin[i] = ebin_seg

@@ -7,6 +7,7 @@ this code is part of the RT2 project
 """
 
 from src.prompt import warning
+from enum import Enum
 
 
 class ZSYMAM:
@@ -39,4 +40,17 @@ class ZSYMAM:
     def __repr__(self) -> str:
         return self._repr
 
-    
+
+class ANGULAR_DIST_TYPE(Enum):
+    ALL_ISOTROPIC = 0  # All angular distributions are isotropic
+    LEGENDRE      = 1  # Data are given as Legendre expansion coefficients
+    TABULATED     = 2  # Data are given as tabulated probability distributions
+    MIXED         = 3  # Legendre in low energy region, tabulated in high energy region
+
+
+class INTERPOLATION_SCHEME(Enum):
+    CONSTANT      = 1
+    LINEAR_LINEAR = 2
+    LINEAR_LOG    = 3
+    LOG_LINEAR    = 4
+    LOG_LOG       = 5

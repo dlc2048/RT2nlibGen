@@ -63,7 +63,7 @@ class ENDFIfstream:
             rec_tab1.appendTab(self._getline(), np2 - 6 * i)
         return rec_tab1
     
-    def tab2(self, is_list: bool, tab2_nested: bool) -> RecTab2 | None:
+    def tab2(self, is_list: bool, tab2_nested: bool = False) -> RecTab2 | None:
         text = self._getline()
         if not text:
             return None
@@ -71,7 +71,7 @@ class ENDFIfstream:
         nr2      = rec_tab2.n1() * 2
         nz       = rec_tab2.n2()
         for i in range((nr2 - 1) // 6 + 1):
-            rec_tab2.append(self._getline(), nr2 - 6 * i)
+            rec_tab2.appendInterp(self._getline(), nr2 - 6 * i)
         if tab2_nested:
             for i in range(nz):
                 rec_tab2.append(self.tab2(is_list, False))
