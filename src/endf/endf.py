@@ -52,6 +52,8 @@ class ENDF:
                 self._reactions[mt].ad = AngularDist(RecCont(text), stream, mt)
             else:
                 pass
+        
+        stream.close()
 
     def __getitem__(self, mt: int) -> CrossSection:
         return self._reactions[mt]

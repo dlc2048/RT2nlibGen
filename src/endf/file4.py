@@ -145,7 +145,7 @@ class DistributionFunction:
         nc = 0
         while True:
             target_area = (1 - b / nbin) * pcum_seg[t] + b / nbin * pcum_seg[t + 1]
-            if target_area >= area_cum[nc]:  # get ceil
+            if target_area > area_cum[nc] and nc < len(area_cum) - 1:  # get ceil
                 nc += 1
                 continue
             nf   = nc - 1
@@ -155,7 +155,10 @@ class DistributionFunction:
             y0   = yn[nf]
             y1   = yn[nc]
             s    = (y1 - y0) / (x1 - x0)
-            angle_bin[t, b] = x0 + (np.sqrt(y0**2 + 2 * aseg * s) - y0) / s
+            if s == 0:
+                angle_bin[t, b] = x0 + aseg / y0
+            else:
+                angle_bin[t, b] = x0 + (np.sqrt(y0**2 + 2 * aseg * s) - y0) / s
             b += 1
             if b > nbin:
                 t += 1
