@@ -110,8 +110,7 @@ class DistributionFunction:
             raise ValueError("mu_min must be smaller than mu_max")
         
         x = self._interp.x()
-        y = self._interp.y()
-        
+
         mu_min = max(mu_min, x[0])
         mu_max = min(mu_max, x[-1])
 
@@ -131,6 +130,7 @@ class DistributionFunction:
         area       = 0.5 * (xn[1:] - xn[:-1]) * (yn[1:] + yn[:-1])
         area_total = np.sum(area)
         area_cum   = np.cumsum(area)
+        area_cum   = np.append(0.0, area_cum)
 
         angle_bin = np.zeros((len(pseg), nbin + 1))
         angle_bin[0,0]   = mu_min
@@ -140,15 +140,31 @@ class DistributionFunction:
         pcum_seg  = pcumul * area_total
         pcum_seg  = np.append(0.0, pcumul)
 
-        t = 0
-        n = 1
-        for ni, acum in enumerate(area_cum):
-            target_area = (1 - n / nbin) * pcum_seg[t] + n / nbin * pcum_seg[t + 1]
-            if target_area > acum:
+        t  = 0
+        b  = 1
+        nc = 0
+        while True:
+            target_area = (1 - b / nbin) * pcum_seg[t] + b / nbin * pcum_seg[t + 1]
+            if target_area >= area_cum[nc]:  # get ceil
+                nc += 1
                 continue
-            print(1)
+            nf   = nc - 1
+            aseg = target_area - area_cum[nf]
+            x0   = xn[nf]
+            x1   = xn[nc]
+            y0   = yn[nf]
+            y1   = yn[nc]
+            s    = (y1 - y0) / (x1 - x0)
+            angle_bin[t, b] = x0 + (np.sqrt(y0**2 + 2 * aseg * s) - y0) / s
+            b += 1
+            if b > nbin:
+                t += 1
+                b  = 1
+                if t >= len(pseg):
+                    break
+                angle_bin[t, 0] = angle_bin[t - 1, -1]
 
-        return
+        return angle_bin, area_total
 
     def getEquibin(self, nbin: int, mu_min: float, mu_max: float, pseg: np.ndarray) -> tuple:
         if self._mode:
