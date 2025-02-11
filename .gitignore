@@ -175,6 +175,7 @@ cython_debug/
 
 !settings/
 !src/
+!src/endf/
 !.gitgnore
 !converter.py
 !converter_thermal.py
