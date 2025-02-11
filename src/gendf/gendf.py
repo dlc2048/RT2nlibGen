@@ -525,7 +525,9 @@ class GENDF:
         # prepare MT=2 and high energy range (fast elastic)
         # first reaction is always MT=2 elastic
         cpos_min, _, len_min = self._gcontrol[self._len_thermal]
-        cpos_max, _, len_max = self._gcontrol[self._desc.ngn()]
+
+        cpos_max, _, len_max = self._gcontrol[self._desc.ngn() - 1]
+        cpos_max = cpos_max + len_max + 1
 
         egn = GENDF.__egn
 
