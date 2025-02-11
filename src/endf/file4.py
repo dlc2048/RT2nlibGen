@@ -111,6 +111,42 @@ class DistributionFunction:
         
         x = self._interp.x()
         y = self._interp.y()
+        
+        mu_min = max(mu_min, x[0])
+        mu_max = min(mu_max, x[-1])
+
+        n0 = np.argmax(mu_min <= x)
+        n1 = np.argmax(mu_max <= x)
+
+        xn = x[n0:n1]
+        if xn[0] > mu_min:
+            xn = np.append(mu_min, xn)
+        if xn[-1] < mu_max:
+            xn = np.append(xn, mu_max)
+        
+        yn = np.empty_like(xn)
+        for i in range(len(xn)):
+            yn[i] = self._interp.get(xn[i])
+        
+        area       = 0.5 * (xn[1:] - xn[:-1]) * (yn[1:] + yn[:-1])
+        area_total = np.sum(area)
+        area_cum   = np.cumsum(area)
+
+        angle_bin = np.zeros((len(pseg), nbin + 1))
+        angle_bin[0,0]   = mu_min
+        angle_bin[-1,-1] = mu_max
+
+        pcumul    = np.cumsum(pseg)
+        pcum_seg  = pcumul * area_total
+        pcum_seg  = np.append(0.0, pcumul)
+
+        t = 0
+        n = 1
+        for ni, acum in enumerate(area_cum):
+            target_area = (1 - n / nbin) * pcum_seg[t] + n / nbin * pcum_seg[t + 1]
+            if target_area > acum:
+                continue
+            print(1)
 
         return
 
