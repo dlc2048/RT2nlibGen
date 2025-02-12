@@ -72,6 +72,7 @@ class GENDF:
         # prepare reaction offset data and empty alias & equiprob angle bin, multiplicity and energy deposition
         self._prepareUnifiedNDL(verbose)
         self._prepareUnifiedMultiplicityAndDeposition(verbose)
+        
         # generate group alias table & equiprobable angle bins
         self._generateEquiprobAngles(endf, nebins, verbose)
         self._generateGroupAlias(verbose)
@@ -344,7 +345,7 @@ class GENDF:
             for mf in reaction.keys():
                 mat  = reaction[mf].matrix()
                 okey = 1000 * mt + mf
-                if mf != 16:
+                if mf not in (16, 26):
                     offset[okey] = ntotal
                     ntotal      += mat.shape[0]
                     max_legend   = max(max_legend, mat.shape[1])
@@ -508,6 +509,12 @@ class GENDF:
             eseg[eseg < 0.0] = 0.0
             self._multiplicity[i * ngn:(i + 1) * ngn] = mseg
             self._edepo[i * ngn:(i + 1) * ngn]        = eseg * 1e-6  # eV to MeV
+
+        # drop MF 26 (depo)
+        for i in range(len(self._mt_list)):
+            mt = self._mt_list[i]
+            if 26 in self._reaction[mt].keys():
+                del self._reaction[mt]._comp[26]
                
     def _generateGroupAlias(self, verbose: bool):
         if verbose:
