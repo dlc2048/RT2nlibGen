@@ -547,6 +547,9 @@ class GENDF:
         for gin in iterator:
             cpos, gmin, len_c = self._gcontrol[gin]
 
+            if len_c < 0:
+                continue
+
             # get transition prob
             pseg   = self._gprob[cpos: cpos + len_c]
 
