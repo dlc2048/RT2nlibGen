@@ -224,6 +224,13 @@ class GENDF:
             secondary = mergeComponents(16, sub_reactions)
             self._reaction[mt_parent].setComponent(16, secondary)
 
+        # res-dose
+        parent_has_table = 26 in self._reaction[mt_parent].keys()
+        child_has_table  = np.any([26 in self._reaction[i].keys() for i in target_list])
+        if not parent_has_table and child_has_table:
+            secondary = mergeComponents(26, sub_reactions)
+            self._reaction[mt_parent].setComponent(26, secondary)
+
         for mt in target_list:
             del self._reaction[mt]
     
@@ -461,7 +468,8 @@ class GENDF:
                     eseg[group] = np.sum(egn_mean * mask)
                 pass
             else:  # depo data not exist
-                za = self._desc.za()
+                za  = self._desc.za()
+                za += 1  # neutron absorption
                 for mf_this, count_this in zip(mf_unique, mf_counts):
                     if mf_this in GENDF_MF_TO_ZA.keys():
                         za -= GENDF_MF_TO_ZA[mf_this] * count_this

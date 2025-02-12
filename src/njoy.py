@@ -113,7 +113,7 @@ class NJOYInput:
         self._file.write(_joinCard(6))
         self._file.write(_joinCard(6, 221))
 
-        for i in range(21, 25):
+        for i in range(21, 27):
             self._file.write(_joinCard(i))
         self._file.write(_joinCard(12))
         self._file.write(_joinCard(16))
