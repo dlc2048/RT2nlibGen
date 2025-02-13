@@ -6,6 +6,8 @@ convert GENDF file that obtained from NJOY21 to RT2 groupwised neutron library
 this code is part of the RT2 project
 """
 
+from copy import deepcopy
+
 import numpy as np
 from tqdm import tqdm
 
@@ -69,14 +71,21 @@ class GENDF:
         # link the parent secondary data to child's missing secondary 
         self._linkMissingSecondaries(verbose)
 
+        # drop parent reactions
+        keys = list(self.keys())
+        for mt in keys:
+            current_mt = MTHierarchy[mt].parent()
+            while current_mt is not None:
+                if current_mt in self.keys():
+                    del self._reaction[current_mt]
+                    print(info('Delete MT={}, {} reaction since sub-reaction exist'.format(current_mt, REACTION_TYPE[current_mt])))
+                current_mt = MTHierarchy[current_mt].parent()
+
         # prepare reaction data
         self._prepareData(verbose)
 
         # generate equiprobable angle bins
         self._generateEquiprobAngles(endf, nebins, self._len_thermal, verbose)
-
-        # drop total XS
-        del self._reaction[1]
 
         # convert MT
         # prepare reaction sampling table
@@ -160,25 +169,21 @@ class GENDF:
             multiplicity = 0.0
             gamma_found  = False
             current_mt   = mt
+            mf           = 16
             while current_mt is not None:
                 if current_mt not in self._reaction.keys():
                     current_mt = MTHierarchy[current_mt].parent()
                     continue
-                if 16 in self._reaction[current_mt].keys():
+                if mf in self._reaction[current_mt].keys():
                     gamma_found  = True
                     reaction     = self._reaction[current_mt]
-                    multiplicity = np.max(reaction[16].multiplicity())
+                    multiplicity = np.max(reaction[mf].multiplicity())
                     break
                 else:
                     current_mt = MTHierarchy[current_mt].parent()
             if gamma_found:
                 if mt != current_mt:  # get from the parent data
-                    control = self._reaction[current_mt][mf].control()
-                    matrix  = self._reaction[current_mt][mf].matrix()
-                    mult    = self._reaction[current_mt][mf].multiplicity()
-                    self._reaction[mt][mf].setControl(np.copy(control))
-                    self._reaction[mt][mf].setMatrix(np.copy(matrix))
-                    self._reaction[mt][mf].setMultiplicity(np.copy(mult))
+                    self._reaction[mt].setComponent(mf, deepcopy(self._reaction[current_mt][mf]))
                     print(info("secondary data are inherited from MT={} to MT={}, MF={}, {} production in {}"
                                 .format(current_mt, mt, mf, GENDF_MF_TYPE[mf], REACTION_TYPE[mt])))
             else:  # Gamma is not always required
