@@ -101,7 +101,7 @@ while True:
             continue
         else:
             if proc.poll() != 0:
-                print('Fail to convert ENDF file {}'.format(current_target[i]))
+                print('Fail to convert ENDF file {} in thread {}'.format(current_target[i], i))
             if len(target_list) == 0:  #finished
                 continue
             target = target_list.pop()

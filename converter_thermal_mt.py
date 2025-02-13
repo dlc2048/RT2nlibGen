@@ -134,7 +134,7 @@ while True:
             continue
         else:
             if proc.poll() != 0:
-                print('Fail to convert ENDF MAT {} for isotope {} at {} K'.format(current_target[i][0], current_target[i][1], current_target[i][2]))
+                print('Fail to convert ENDF MAT {} for isotope {} at {} K in thread {}'.format(current_target[i][0], current_target[i][1], current_target[i][2], i))
             if len(target_list) == 0:  #finished
                 continue
             target = target_list.pop()
