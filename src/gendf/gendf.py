@@ -89,8 +89,7 @@ class GENDF:
 
     @staticmethod
     def _streamVerbose(mt: int, mf: int, verbose: bool):
-        if verbose:
-            print(info('Data block found for MT={}, MT={}, {} data for {}'.format(mt, mf, GENDF_MF_TYPE[mf], REACTION_TYPE[mt])))
+        print(info('Data block found for MT={}, MT={}, {} data for {}'.format(mt, mf, GENDF_MF_TYPE[mf], REACTION_TYPE[mt])))
 
     def _readStream(self, file_name: str, endf: ENDF, verbose: bool):
         stream = ENDFIfstream(file_name, verbose)
@@ -154,9 +153,8 @@ class GENDF:
                         print(info("secondary data are inherited from MT={} to MT={}, MF={}, {} production in {}"
                                     .format(current_mt, mt, mf, GENDF_MF_TYPE[mf], REACTION_TYPE[mt])))
                 else:
-                    if verbose:
-                        print(warning("secondary data missing for MT={}, MF={}, {} production in {}"
-                                      .format(mt, mf, GENDF_MF_TYPE[mf], REACTION_TYPE[mt])))
+                    print(warning("secondary data missing for MT={}, MF={}, {} production in {}"
+                                  .format(mt, mf, GENDF_MF_TYPE[mf], REACTION_TYPE[mt])))
             
             # check gamma secondary
             multiplicity = 0.0
@@ -195,8 +193,7 @@ class GENDF:
             self._reaction[mt].generateEquiprobAngles(endf, nebins, len_thermal, verbose)
 
     def _mergeThermal(self, verbose: bool, mfactor: float):
-        if verbose:
-            print(info('Merge MT=221 (thermal) data to MT=2 (elastic)'))
+        print(info('Merge MT=221 (thermal) data to MT=2 (elastic)'))
 
         # append XS of MT=221 to MT=2
         thermal_xs = self._reaction[221].xs()
@@ -206,8 +203,7 @@ class GENDF:
 
         self._len_thermal = len_thermal
 
-        if verbose:
-            print(info('Molecular number is estimated to be {}').format(mfactor))
+        print(info('Molecular number is estimated to be {}').format(mfactor))
 
         xs_modifier = np.copy(elastic_xs)
 
@@ -264,14 +260,13 @@ class GENDF:
         if not len(target_list):
             return
         
-        if verbose:
-            print(info("Merge sub reactions to MT={}, {} reaction".format(mt_parent, REACTION_TYPE[mt_parent])))
-            print("List of valid sub reactions")
-            reaction_repr_list = ""
-            for mt in target_list:
-                reaction_repr_list += '{}, '.format(REACTION_TYPE[mt])
-            for i in range(int(np.ceil(len(reaction_repr_list) / 80))):
-                print(info('{}'.format(reaction_repr_list[i * 80: (i + 1) * 80])))
+        print(info("Merge sub reactions to MT={}, {} reaction".format(mt_parent, REACTION_TYPE[mt_parent])))
+        print("List of valid sub reactions")
+        reaction_repr_list = ""
+        for mt in target_list:
+            reaction_repr_list += '{}, '.format(REACTION_TYPE[mt])
+        for i in range(int(np.ceil(len(reaction_repr_list) / 80))):
+            print(info('{}'.format(reaction_repr_list[i * 80: (i + 1) * 80])))
 
         for mf in GENDF_MF_TO_MULT:
             if GENDF_MF_TO_MULT[mf][mt] > 0:
@@ -304,8 +299,7 @@ class GENDF:
     
     def _prepareReactionTable(self, verbose: bool):
         # prepare target MT list
-        if verbose:
-            print(info("Search possible reaction branch ..."))
+        print(info("Search possible reaction branch ..."))
         mt_list = self.keys()
         mt_val  = set(mt_list)
 
@@ -313,17 +307,15 @@ class GENDF:
         self._mt_list.sort()
         self._mt_list = np.array(self._mt_list)
 
-        if verbose:
-            print("Possible reaction list")
-            reaction_repr_list = ""
-            for mt in self._mt_list:
-                reaction_repr_list += '{}, '.format(REACTION_TYPE[mt])
-            for i in range(int(np.ceil(len(reaction_repr_list) / 80))):
-                print('{}'.format(reaction_repr_list[i * 80: (i + 1) * 80]))
+        print("Possible reaction list")
+        reaction_repr_list = ""
+        for mt in self._mt_list:
+            reaction_repr_list += '{}, '.format(REACTION_TYPE[mt])
+        for i in range(int(np.ceil(len(reaction_repr_list) / 80))):
+            print('{}'.format(reaction_repr_list[i * 80: (i + 1) * 80]))
 
         # prepare alias table
-        if verbose:
-            print(info("Prepare MT sampling alias table ..."))
+        print(info("Prepare MT sampling alias table ..."))
         alias_shape  = (self._desc.ngn(), len(self._mt_list))
         self._ralias = -np.ones(alias_shape, dtype=int)
         self._rprob  = -np.ones(alias_shape, dtype=float)
@@ -400,16 +392,14 @@ class GENDF:
         self._galias   = -np.ones(trans_total, dtype=int)
         self._gprob    = np.empty(trans_total, dtype=float)
 
-        if verbose:
-            print(info('Prepare unified data library ...'))
-            print('Number of neutron group     : {}'.format(ngn))
-            print('Length of alias table       : {}'.format(self._galias.shape[0]))
-            print('Length of equiprobable table: {}'.format(self._eabin.shape[0]))
-            print('Length of control table     : {}'.format(len(offset) * ngn))
+        print(info('Prepare unified data library ...'))
+        print('Number of neutron group     : {}'.format(ngn))
+        print('Length of alias table       : {}'.format(self._galias.shape[0]))
+        print('Length of equiprobable table: {}'.format(self._eabin.shape[0]))
+        print('Length of control table     : {}'.format(len(offset) * ngn))
 
         # fill dose and multiplicity
-        if verbose:
-            print(info('Prepare unified multiplicity and deposition ...'))
+        print(info('Prepare unified multiplicity and deposition ...'))
         iterator = enumerate(self._mt_list)
         if verbose:
             iterator = tqdm(iterator)
@@ -418,8 +408,7 @@ class GENDF:
             self._multiplicity[i * ngn: (i + 1) * ngn] = self[mt].multiplicity()
 
         # fill control card and eabin
-        if verbose:
-            print(info('Prepare unified control card and polynomials ...'))
+        print(info('Prepare unified control card and polynomials ...'))
         iterator = enumerate(offset)
         if verbose:
             iterator = tqdm(iterator)
@@ -437,8 +426,7 @@ class GENDF:
                 self._eabin[toff:toff + mat.shape[0]] = reaction[mf].equiprobable()
 
         # Link sampling instruction tape to control card
-        if verbose:
-            print(info('Link sampling instruction tape to control card ...'))
+        print(info('Link sampling instruction tape to control card ...'))
         iterator = range(len(self._mt_list))
         if verbose:
             iterator = tqdm(iterator)
@@ -454,8 +442,7 @@ class GENDF:
                 self._stape[j + soff] = stape
 
     def _generateGroupAlias(self, verbose: bool):
-        if verbose:
-            print(info('Generate group alias table ...'))
+        print(info('Generate group alias table ...'))
         iterator = self._gcontrol
         if verbose:
             iterator = tqdm(iterator)

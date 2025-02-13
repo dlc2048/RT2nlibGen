@@ -411,11 +411,10 @@ class Reaction:
                 za_res -= GENDF_MF_TO_ZA[za_sec]
         self._za_res = za_res
 
-        if verbose:
-            inst_list = list(map(lambda x: GENDF_MF_SYMBOL[x], self._inst))
-            print(info("Reaction instruction of MT={}, {} reaction".format(self._mt, REACTION_TYPE[self._mt])))
-            print("Secondaries -> [{}]".format(', '.join(inst_list)))
-            print("Residual ZA -> {}".format(self._za_res))
+        inst_list = list(map(lambda x: GENDF_MF_SYMBOL[x], self._inst))
+        print(info("Reaction instruction of MT={}, {} reaction".format(self._mt, REACTION_TYPE[self._mt])))
+        print("Secondaries -> [{}]".format(', '.join(inst_list)))
+        print("Residual ZA -> {}".format(self._za_res))
 
             
     def _calculateResDoseAndMultiplicity(self, verbose):
@@ -428,19 +427,16 @@ class Reaction:
 
         # deposition
         if not self._za_res:  # target remnant not exist
-            if verbose:
-                print(info('Residual target remnant not exist for MT={}, {} reaction. Energy deposition is set to 0.'.format(self._mt, REACTION_TYPE[self._mt])))
+            print(info('Residual target remnant not exist for MT={}, {} reaction. Energy deposition is set to 0.'.format(self._mt, REACTION_TYPE[self._mt])))
             self._depo[:] = 0.0
         else:
             if 26 in self._comp.keys():  # Tabulated depo data exist
-                if verbose:
-                    print(info('Energy deposition data found for MT={}, {} reaction'.format(self._mt, REACTION_TYPE[self._mt])))
+                print(info('Energy deposition data found for MT={}, {} reaction'.format(self._mt, REACTION_TYPE[self._mt])))
                 for group in range(Reaction.ngn()):
                     mask = self._comp[26].probabilityMask(group)
                     self._depo[group] = np.sum(egn_mean * mask)
             else:  # Not exist
-                if verbose:
-                    print(info('Energy deposition data not found for MT={}, {} reaction. Using Q-value to calculate deposition.'.format(self._mt, REACTION_TYPE[self._mt])))
+                print(info('Energy deposition data not found for MT={}, {} reaction. Using Q-value to calculate deposition.'.format(self._mt, REACTION_TYPE[self._mt])))
                 self._depo[:] = self._qvalue + egn_mean
                 for group in range(Reaction.ngn()):
                     for mf_this in self._inst:
@@ -465,8 +461,7 @@ class Reaction:
         self._mult[:] = multiplicity
 
     def _generateElasticEquiprobAngles(self, endf: ENDF, nebins: int, len_thermal: int, verbose: bool):
-        if verbose:
-            print(info('Angular distribution is generated from the scattering kinematics for MT={}, {} reaction'.format(self._mt, REACTION_TYPE[self._mt])))
+        print(info('Angular distribution is generated from the scattering kinematics for MT={}, {} reaction'.format(self._mt, REACTION_TYPE[self._mt])))
         
         # generate elastic equiprob for the scattered neutron
         matrix     = self._comp[6].matrix()
@@ -527,8 +522,7 @@ class Reaction:
         self._comp[6].setEquiprobable(equiprob_n)
 
     def _generateEvapEquiprobAngles(self, nebins: int, verbose: bool):
-        if verbose:
-            print(info('Angular distribution is generated from the GENDF for MT={}, {} reaction'.format(self._mt, REACTION_TYPE[self._mt])))
+        print(info('Angular distribution is generated from the GENDF for MT={}, {} reaction'.format(self._mt, REACTION_TYPE[self._mt])))
         for mf in self._comp.keys():
             if mf not in (16, 26):  # only for hadron
                 self._comp[mf].generateEquiprobAngles(nebins, verbose)

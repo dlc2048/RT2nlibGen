@@ -115,8 +115,7 @@ while True:
                 '-o', out_file, 
                 '-w', 'thread{}'.format(i), 
                 '-e', str(nebins), 
-                '-t', str(temperature),
-                '-v'
+                '-t', str(temperature)
             ]
             stalled = True
             print('Convert ENDF {}'.format(target))
