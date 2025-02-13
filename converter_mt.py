@@ -88,6 +88,11 @@ os.makedirs(output_path, exist_ok=True)
 for i in range(nthreads):
     os.makedirs('thread{}'.format(i), exist_ok=True)
 
+# prepare log
+logs = [None] * nthreads
+for i in range(nthreads):
+    logs[i] = open('thread{}.log'.format(i), mode='w')
+
 while True:
     stalled = False
     for i, proc in enumerate(procs):
@@ -110,13 +115,17 @@ while True:
                 '-o', out_file, 
                 '-w', 'thread{}'.format(i), 
                 '-e', str(nebins), 
-                '-t', str(temperature)
+                '-t', str(temperature),
+                '-v'
             ]
             stalled = True
             print('Convert ENDF {}'.format(target))
-            procs[i] = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            procs[i] = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=logs[i], stderr=logs[i])
     if not stalled:
         break
     time.sleep(0.5)
+
+for i in range(nthreads):
+    logs[i].close()
 
 exit(0)

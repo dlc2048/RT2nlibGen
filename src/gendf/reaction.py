@@ -3,12 +3,18 @@ from __future__ import annotations
 import copy
 
 import numpy as np
+from tqdm import tqdm
 
+from src.endf.endf import ENDF
 from src.endf.stream import ENDFIfstream, FileInterface
 from src.endf.record import RecText, RecCont
 from src.endf.desc import REACTION_TYPE
-from src.gendf.desc import GENDF_MF_TYPE, GENDF_MF_TO_MULT
-from src.constants import MAX_MULTIPLICITY
+from src.gendf.desc import GENDF_MF_TYPE, GENDF_MF_SYMBOL, GENDF_MF_TO_MULT, GENDF_MF_TO_ZA, GENDF_ZA_TO_MF
+
+from src.constants import MAX_MULTIPLICITY, MIN_GENION_ENERGY, SCATTERING_INTERP_N
+from src.algorithm import legendreToEquibin
+from src.physics import muCMToLab, muCMToLabTarget
+from src.prompt import info, warning
 
 class CommonFile(FileInterface):
     def __init__(self, head: RecText, stream: ENDFIfstream):
@@ -69,6 +75,7 @@ class Secondary:
         self._multiplicity = np.zeros(ngn)
         self._control      = -np.ones((ngn, 3), dtype=int)     # memory control  [matrix position, lowest transition group, matrix length]
         self._matrix       = None  # Legendre polynomials
+        self._equiprob     = None  # Equiprobable angle bins
         self._repr         = GENDF_MF_TYPE[mf]
 
     def control(self) -> np.ndarray:
@@ -76,6 +83,9 @@ class Secondary:
     
     def matrix(self) -> np.ndarray:
         return self._matrix
+    
+    def equiprobable(self) -> np.ndarray:
+        return self._equiprob
     
     def multiplicity(self) -> np.ndarray:
         return self._multiplicity
@@ -89,11 +99,27 @@ class Secondary:
             mask /= np.sum(mask)  # normalize
         return mask
     
+    def generateEquiprobAngles(self, nebins: int, verbose: bool):
+        self._equiprob = np.empty((self._matrix.shape[0], nebins + 1))
+        modifier       = (np.arange(0, self._matrix.shape[1], 1) * 2 + 1) / 2   # ENDF legendre coeff
+        iterator = range(self._matrix.shape[0])
+        if verbose:
+            iterator = tqdm(iterator)
+            iterator.set_description('{:<10}'.format(GENDF_MF_TYPE[self._mf]))
+        for i in iterator:
+            poly        = self._matrix[i]
+            ebin_seg, _ = legendreToEquibin(poly * modifier, nebins)
+            self._equiprob[i] = ebin_seg
+        return
+    
     def setControl(self, cont: np.ndarray):
         self._control = cont
 
     def setMatrix(self, mat: np.ndarray):
         self._matrix = mat
+
+    def setEquiprobable(self, equi: np.ndarray):
+        self._equiprob = equi
 
     def setMultiplicity(self, multiplicity: np.ndarray):
         self._multiplicity = multiplicity
@@ -282,31 +308,53 @@ class SecondaryFactory:
 
 
 class Reaction:
-    def __init__(self, mt: int, ngn: int, ngg: int, qvalue: float):
+    __egn = None
+    __egg = None
+
+    @staticmethod
+    def setNeutronGroupStructure(egn: np.ndarray):
+        Reaction.__egn = np.copy(egn)
+    
+    @staticmethod
+    def setGammaGroupStructure(egg: np.ndarray):
+        Reaction.__egg = np.copy(egg)
+
+    @staticmethod
+    def ngn():
+        return len(Reaction.__egn) - 1
+    
+    @staticmethod
+    def ngg():
+        return len(Reaction.__egg) - 1
+
+    def __init__(self, za_target: int, mt: int, qvalue: float):
+        self._za_origin = za_target
+        self._za_res    = None
         self._repr   = REACTION_TYPE[mt]
         self._mt     = mt
-        self._ngn    = ngn
-        self._ngg    = ngg
-        self._qvalue = qvalue
-        self._xs     = None
-        self._mult   = None
-        self._comp   = {}
+        self._qvalue = qvalue  # reaction Q value
+        self._inst   = []      # reaction instruction
+        self._xs     = None    # XS vector
+        self._depo   = None    # Multiplicity vector
+        self._mult   = None    # Deposition vector
+        self._comp   = {}      # Secondaries
 
     def setXS(self, xs_file: CommonFile):
         xs_gen = CrossSection(xs_file)
-        self._xs   = xs_gen.xs()               # XS vector
-        self._mult = np.zeros(self._xs.shape)  # Multiplicity vector
+        self._xs   = xs_gen.xs()
+        self._mult = np.zeros_like(self._xs)   
+        self._depo = np.zeros_like(self._xs)   
 
     def setXSArr(self, xs: np.ndarray):
         self._xs = xs
 
     def addComponent(self, mf: int, trans_file: CommonFile):
-        self._comp[mf] = SecondaryFactory.interpret(mf, self._ngn, self._ngg, trans_file)
+        self._comp[mf] = SecondaryFactory.interpret(mf, Reaction.ngn(), Reaction.ngg(), trans_file)
 
     def setComponent(self, mf: int, secondary: Secondary):
         self._comp[mf] = secondary
 
-    def normalize(self):
+    def _normalizeXS(self):
         for mf in self._comp:
             comps = self._comp[mf]
             for comp in comps:
@@ -316,7 +364,7 @@ class Reaction:
                     else:  # get XS from MF3
                         comp.normalize(self.xs())
     
-    def merge(self):
+    def _mergeTransitionmatrix(self):
         for mf in self._comp:
             trans, spect = self._comp[mf]
             if spect is None:
@@ -326,6 +374,185 @@ class Reaction:
             else:
                 trans.merge(spect)
                 self._comp[mf] = trans
+
+    def _prepareInstruction(self, verbose: bool):
+        # calculate residual nucleus ZA
+        za_res = self._za_origin + 1  # neutron capture
+        for mf in GENDF_MF_TO_MULT.keys():
+            multiplicity = GENDF_MF_TO_MULT[mf][self.mt()]
+            if mf in self._comp.keys():
+                za_res   -= multiplicity * GENDF_MF_TO_ZA[mf]
+
+        # reaction instruction
+        stape = []
+
+        # hadron secondary
+        for mf in GENDF_MF_TO_MULT.keys():
+            multiplicity = GENDF_MF_TO_MULT[mf][self.mt()]
+            if GENDF_MF_TO_ZA[mf] == za_res and multiplicity == 0:
+                multiplicity = 1
+            if multiplicity == 0:
+                continue
+            if mf in self._comp.keys():
+                stape += [mf] * multiplicity
+
+        # gamma
+        if 16 in self._comp.keys():
+            multiplicity = np.max(self._comp[16].multiplicity())
+            multiplicity = int(np.ceil(multiplicity))
+            stape += [16] * multiplicity
+        
+        self._inst = np.array(stape)
+
+        # calculate za res again
+        za_res = self._za_origin + 1  # neutron capture
+        for za_sec in stape:
+            if za_sec in GENDF_MF_TO_ZA:
+                za_res -= GENDF_MF_TO_ZA[za_sec]
+        self._za_res = za_res
+
+        if verbose:
+            inst_list = list(map(lambda x: GENDF_MF_SYMBOL[x], self._inst))
+            print(info("Reaction instruction of MT={}, {} reaction".format(self._mt, REACTION_TYPE[self._mt])))
+            print("Secondaries -> [{}]".format(', '.join(inst_list)))
+            print("Residual ZA -> {}".format(self._za_res))
+
+            
+    def _calculateResDoseAndMultiplicity(self, verbose):
+        
+        egn = Reaction.__egn
+        egg = Reaction.__egg
+
+        egn_mean = (egn[1:] + egn[:-1]) * 0.5
+        egg_mean = (egg[1:] + egg[:-1]) * 0.5
+
+        # deposition
+        if not self._za_res:  # target remnant not exist
+            if verbose:
+                print(info('Residual target remnant not exist for MT={}, {} reaction. Energy deposition is set to 0.'.format(self._mt, REACTION_TYPE[self._mt])))
+            self._depo[:] = 0.0
+        else:
+            if 26 in self._comp.keys():  # Tabulated depo data exist
+                if verbose:
+                    print(info('Energy deposition data found for MT={}, {} reaction'.format(self._mt, REACTION_TYPE[self._mt])))
+                for group in range(Reaction.ngn()):
+                    mask = self._comp[26].probabilityMask(group)
+                    self._depo[group] = np.sum(egn_mean * mask)
+            else:  # Not exist
+                if verbose:
+                    print(info('Energy deposition data not found for MT={}, {} reaction. Using Q-value to calculate deposition.'.format(self._mt, REACTION_TYPE[self._mt])))
+                self._depo[:] = self._qvalue + egn_mean
+                for group in range(Reaction.ngn()):
+                    for mf_this in self._inst:
+                        mask = self._comp[mf_this].probabilityMask(group)
+                        if mf_this == 16:
+                            self._depo[group] -= np.sum(egg_mean * mask) * self._comp[mf_this].multiplicity()[group]
+                            break  # end if photon
+                        else:
+                            self._depo[group] -= np.sum(egn_mean * mask)
+
+        self._depo[self._depo < 0.0] = 0.0
+        self._depo[:] *= 1e-6  # eV to MeV
+
+        # remove 26 (res-dose) if exist
+        if 26 in self._comp.keys():
+            del self._comp[26]
+
+        # multiplicity
+        n_hadron      = np.sum(self._inst != 16)
+        multiplicity  = self._comp[16].multiplicity() if 16 in self._inst else 0.0
+        multiplicity += n_hadron
+        self._mult[:] = multiplicity
+
+    def _generateElasticEquiprobAngles(self, endf: ENDF, nebins: int, len_thermal: int, verbose: bool):
+        if verbose:
+            print(info('Angular distribution is generated from the scattering kinematics for MT={}, {} reaction'.format(self._mt, REACTION_TYPE[self._mt])))
+        
+        # generate elastic equiprob for the scattered neutron
+        matrix     = self._comp[6].matrix()
+        control    = self._comp[6].control()
+
+        equiprob_n = np.empty((matrix.shape[0], nebins + 1))
+        modifier   = (np.arange(0, matrix.shape[1], 1) * 2 + 1) / 2   # ENDF legendre coeff
+
+        # thermal -> using legendre polynomial
+        cpos, _, len_c = control[len_thermal]
+        iterator = range(cpos)
+        if verbose:
+            iterator = tqdm(iterator)
+            iterator.set_description('Thermal')
+        for i in iterator:
+            ebin_seg, _ = legendreToEquibin(matrix[i] * modifier, nebins)
+            equiprob_n[i] = ebin_seg
+
+        # fast -> kinematics
+        egn   = Reaction.__egn
+        awr   = endf.desc().mass()
+        awr   = max(1.0, awr)
+
+        ad_mt2 = endf[2].ad
+        is_cm  = ad_mt2.isOnCMSystem()
+
+        iterator = range(len_thermal, Reaction.ngn())
+        if verbose:
+            iterator = tqdm(iterator)
+            iterator.set_description('Fast scattered')
+        for gin in iterator:
+            cpos, gmin, len_c = control[gin]
+            if len_c < 0:
+                continue
+
+            # get transition prob
+            pseg = matrix[cpos:cpos + len_c, 0]
+            pseg = pseg / np.sum(pseg)  # normalize
+
+            ein  = (egn[gin] + egn[gin + 1]) * 0.5
+            dist = ad_mt2.getDistribution(ein)
+            
+            # get mu bins from transition probability (scattered neutron)
+            mu_min = -1.0
+            mu_max = +1.0
+            if not is_cm:
+                mu_min = muCMToLab(awr, mu_min)
+                mu_max = muCMToLab(awr, mu_max)
+
+            ebin_seg_list, _ = dist.getEquibin(nebins, mu_min, mu_max, pseg)
+            if is_cm:
+                ebin_seg_list = muCMToLab(awr, ebin_seg_list)
+
+            equiprob_n[cpos:cpos + len_c] = ebin_seg_list
+        
+        # overwrite data
+        self._comp[6].setMatrix(matrix)
+        self._comp[6].setEquiprobable(equiprob_n)
+
+    def _generateEvapEquiprobAngles(self, nebins: int, verbose: bool):
+        if verbose:
+            print(info('Angular distribution is generated from the GENDF for MT={}, {} reaction'.format(self._mt, REACTION_TYPE[self._mt])))
+        for mf in self._comp.keys():
+            if mf not in (16, 26):  # only for hadron
+                self._comp[mf].generateEquiprobAngles(nebins, verbose)
+    
+    def normalize(self):
+        if self._mt == 1:  # No rule for (n,total) MT
+            return
+        self._normalizeXS()
+        self._mergeTransitionmatrix()
+
+    def prepareData(self, verbose: bool):
+        if self._mt == 1:  # No rule for (n,total) MT
+            return
+        self._prepareInstruction(verbose)
+        self._calculateResDoseAndMultiplicity(verbose)
+
+    def generateEquiprobAngles(self, endf: ENDF, nebins: int, len_thermal: int, verbose: bool):
+        if self._mt == 1:  # No rule for (n,total) MT
+            return
+        elif self._mt == 2:  # elastic
+            self._generateElasticEquiprobAngles(endf, nebins, len_thermal, verbose)
+        else:
+            self._generateEvapEquiprobAngles(nebins, verbose)
+        
 
     def __repr__(self) -> str:
         return self._repr
@@ -342,14 +569,17 @@ class Reaction:
     def qvalue(self) -> float:
         return self._qvalue
     
+    def inst(self) -> list:
+        return self._inst
+    
     def xs(self) -> np.ndarray | None:
         return self._xs
     
-    def ngn(self) -> int:
-        return self._ngn
+    def depo(self) -> np.ndarray | None:
+        return self._depo
     
-    def ngg(self) -> int:
-        return self._ngg
+    def multiplicity(self) -> np.ndarray | None:
+        return self._mult
     
 
 def mergeComponents(mf: int, reactions: list) -> Secondary:

@@ -134,8 +134,6 @@ with subprocess.Popen([ENV["njoy_executable"],
 
 os.chdir('..')        
 
-GENDF.setNeutronGroup(egn)
-
 print("*** GENDF data processing ***")
 gendf_data = GENDF(os.path.join(working_directory, njoy_result_file), nebins, temperature, endf_data, verbose=verbose)
 print('*** Write data "{}" ***'.format(output_path))

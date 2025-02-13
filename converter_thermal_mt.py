@@ -106,6 +106,11 @@ os.makedirs(output_path, exist_ok=True)
 for i in range(nthreads):
     os.makedirs('thread{}'.format(i), exist_ok=True)
 
+# prepare log
+logs = [None] * nthreads
+for i in range(nthreads):
+    logs[i] = open('thread{}.log'.format(i), mode='w')
+
 # prepare target
 target_list = []
 with open(target_path) as file:
@@ -151,9 +156,12 @@ while True:
             ]
             stalled = True
             print('Convert ENDF MAT {} for isotope {} at {} K'.format(target[0], target[1], target[2]))
-            procs[i] = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            procs[i] = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=logs[i], stderr=logs[i])
     if not stalled:
         break
     time.sleep(0.5)
+
+for i in range(nthreads):
+    logs[i].close()
 
 exit(0)

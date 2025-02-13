@@ -14,5 +14,9 @@ def muCMToLab(awr: float, mu: float | np.ndarray) -> float | np.ndarray:
     return np.divide(x, y, out=np.zeros_like(x), where=y!=0)
 
 
+def muCMToLabTarget(mu: float | np.ndarray) -> float | np.ndarray:
+    return np.sqrt((1 - mu) * 0.5)
+
+
 def muLabToCM(awr: float, mu: float | np.ndarray) -> float | np.ndarray:
     return (mu**2 - 1 + mu * np.sqrt(awr**2 + mu**2 - 1)) / awr

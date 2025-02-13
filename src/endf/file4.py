@@ -174,6 +174,16 @@ class DistributionFunction:
             return self._getEquibinFromLegendre(nbin, mu_min, mu_max, pseg)
         else:
             return self._getEquibinFromTabula(nbin, mu_min, mu_max, pseg)
+        
+    def flip(self):  # y-axis symmetry transformation (for the CM system recoil)
+        if self._mode:
+            self._legendre.coef[1::2] *= -1.0
+        else:
+            x = self._interp.x()
+            y = self._interp.y()
+            x = np.flip(x * -1.0)
+            y = np.flip(y)
+            self._interp = Interp1d(x, y, inte=2)
 
 
 class AngularDist(FileInterface):
@@ -199,7 +209,7 @@ class AngularDist(FileInterface):
     def isOnCMSystem(self) -> bool:
         return self._lct
 
-    def _getDistributionLegendre(self, inc_e: float) -> np.polynomial.Legendre:
+    def _getDistributionLegendre(self, inc_e: float) -> DistributionFunction:
         tab = self._legendre.tab()
         for i, eq in enumerate(tab):
             e = eq.c2()
@@ -233,7 +243,7 @@ class AngularDist(FileInterface):
         modifier = (np.arange(0, len(coeff), 1) * 2 + 1) / 2   # ENDF legendre coeff
         return DistributionFunction(np.polynomial.Legendre(coeff * modifier))
     
-    def _getDistributionTabulated(self, inc_e: float) -> tuple:
+    def _getDistributionTabulated(self, inc_e: float) -> DistributionFunction:
         tab = self._tabulated.tab()
         for i, eq in enumerate(tab):
             e = eq.c2()
@@ -264,7 +274,7 @@ class AngularDist(FileInterface):
 
         return DistributionFunction((domain, value))
     
-    def _getDistributionMixed(self, inc_e: float) -> np.polynomial.Legendre | tuple:
+    def _getDistributionMixed(self, inc_e: float) -> DistributionFunction:
         tab = self._legendre.tab()
         for i, eq in enumerate(tab):
             e = eq.c2()
@@ -272,9 +282,9 @@ class AngularDist(FileInterface):
                 return self._getDistributionLegendre(inc_e)
         return self._getDistributionTabulated(inc_e)
 
-    def getDistribution(self, inc_e: float) -> np.polynomial.Legendre | tuple:
+    def getDistribution(self, inc_e: float) -> DistributionFunction:
         if self._ltt == ANGULAR_DIST_TYPE.ALL_ISOTROPIC:  # isotropic
-            return np.polynomial.Legendre([0.5])
+            return DistributionFunction(np.polynomial.Legendre([0.5]))
         elif self._ltt == ANGULAR_DIST_TYPE.LEGENDRE:
             return self._getDistributionLegendre(inc_e)
         elif self._ltt == ANGULAR_DIST_TYPE.TABULATED:
