@@ -333,7 +333,7 @@ class Reaction:
         self._repr   = REACTION_TYPE[mt]
         self._mt     = mt
         self._qvalue = qvalue  # reaction Q value
-        self._inst   = []      # reaction instruction
+        self._inst   = None    # reaction instruction
         self._xs     = None    # XS vector
         self._depo   = None    # Multiplicity vector
         self._mult   = None    # Deposition vector
@@ -404,7 +404,7 @@ class Reaction:
             multiplicity = int(np.ceil(multiplicity))
             stape += [16] * multiplicity
         
-        self._inst = np.array(stape)
+        self._inst = np.array(stape, dtype=int)
 
         # calculate za res again
         za_res = self._za_origin + 1  # neutron capture

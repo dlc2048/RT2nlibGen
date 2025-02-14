@@ -348,7 +348,7 @@ class GENDF:
         stape_off = np.empty(0, dtype=int)
         stape_len = np.empty(0, dtype=int)
         stape     = np.empty(0, dtype=int)
-        for mt in self.keys():
+        for mt in self._mt_list:
             reaction = self[mt]
             inst = reaction.inst()
             stape_off = np.append(stape_off, len(stape))
@@ -367,7 +367,7 @@ class GENDF:
         trans_total = 0
 
         # Hadron key
-        for mt in self.keys():  
+        for mt in self._mt_list:  
             reaction = self[mt]
             for mf in reaction.keys():
                 mat  = reaction[mf].matrix()
@@ -379,7 +379,7 @@ class GENDF:
         self._eabin    = np.zeros((trans_total, nebins + 1), dtype=float)
 
         # Gamma key
-        for mt in self.keys():  
+        for mt in self._mt_list:  
             reaction = self[mt]
             for mf in reaction.keys():
                 mat  = reaction[mf].matrix()
@@ -466,7 +466,7 @@ class GENDF:
         file.write(np.array((self._eabin.shape[1]), dtype=np.int32))                # number of angle group
         # XS
         xs_total = np.zeros(len(self._desc.egn()) - 1, dtype=float)
-        for mt in self.keys():
+        for mt in self._mt_list:
             xs_total += self[mt].xs()
         file.write(xs_total.astype(np.float32))
         # reaction
