@@ -91,7 +91,7 @@ class NJOYInput:
         self._file.write(_joinCard(self.temperature))
         self._file.write(_joinCard(tol, emax))
 
-    def groupr(self, nendf, npend, ngout2, ign, igg, iwt, lord, sigz):
+    def groupr(self, nendf, npend, ngout2, ign, igg, iwt, lord, sigz, mt_lists: None | list):
         """writle GROUPR module input"""
         # header
         self._file.write("groupr\n")
@@ -113,8 +113,12 @@ class NJOYInput:
         self._file.write(_joinCard(6))
         self._file.write(_joinCard(6, 221))
 
-        for i in range(21, 27):
+        for i in range(21, 26):
             self._file.write(_joinCard(i))
+        if mt_lists is None:
+            self._file.write(_joinCard(26))  # all
+        elif 19 not in mt_lists:
+            self._file.write(_joinCard(26))
         self._file.write(_joinCard(12))
         self._file.write(_joinCard(16))
         for i in range(2):

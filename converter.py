@@ -108,6 +108,9 @@ shutil.copy(input_path, os.path.join(working_directory, njoy_target_file))
 os.chdir(working_directory)
 pathlib.Path(njoy_output_file).unlink(missing_ok=True)
 
+# mt lists
+mt_lists = endf_data.keys()
+
 ninput = NJOYInput(njoy_input_file)
 ninput.setEnv(mat, temperature)
 ninput.setNeutronGroup(egn)
@@ -116,7 +119,7 @@ ninput.moder(njoy_target, -21)
 ninput.reconr(-21, -22, 0.0005)
 ninput.broadr(-21, -22, -23, 0.0005)
 ninput.thermr(0, -23, -24, 0, 1, 0, 0.005, 4)
-ninput.groupr(-21, -24, -30, 1, 1, 7, 8, 1e7)
+ninput.groupr(-21, -24, -30, 1, 1, 7, 8, 1e7, list(mt_lists))
 ninput.moder(-30, njoy_result)
 ninput.stop()
 ninput.write()

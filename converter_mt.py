@@ -91,7 +91,7 @@ for i in range(nthreads):
 # prepare log
 logs = [None] * nthreads
 for i in range(nthreads):
-    logs[i] = open('thread{}.log'.format(i), mode='w')
+    logs[i] = open('thread{}/converter_mt.log'.format(i), mode='w')
 
 while True:
     stalled = False

@@ -155,10 +155,7 @@ class GENDF:
                         current_mt = MTHierarchy[current_mt].parent()
                 if hadron_found:
                     if mt != current_mt:  # get from the parent data
-                        control = self._reaction[current_mt][mf].control()
-                        matrix  = self._reaction[current_mt][mf].matrix()
-                        self._reaction[mt][mf].setControl(np.copy(control))
-                        self._reaction[mt][mf].setMatrix(np.copy(matrix))
+                        self._reaction[mt].setComponent(mf, deepcopy(self._reaction[current_mt][mf]))
                         print(info("secondary data are inherited from MT={} to MT={}, MF={}, {} production in {}"
                                     .format(current_mt, mt, mf, GENDF_MF_TYPE[mf], REACTION_TYPE[mt])))
                 else:

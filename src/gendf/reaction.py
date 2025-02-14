@@ -360,7 +360,9 @@ class Reaction:
             for comp in comps:
                 if comp is not None:
                     if self.xs() is None:  # MF13 case -> get XS from MF13
-                        self._xs = comp.normalizeMF13()
+                        self._xs   = comp.normalizeMF13()
+                        self._mult = np.zeros_like(self._xs)   
+                        self._depo = np.zeros_like(self._xs)
                     else:  # get XS from MF3
                         comp.normalize(self.xs())
     
