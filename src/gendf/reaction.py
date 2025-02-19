@@ -354,6 +354,9 @@ class Reaction:
     def setComponent(self, mf: int, secondary: Secondary):
         self._comp[mf] = secondary
 
+    def residualZA(self) -> int | None:
+        return self._za_res
+
     def _normalizeXS(self):
         for mf in self._comp:
             comps = self._comp[mf]

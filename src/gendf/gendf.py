@@ -33,12 +33,13 @@ class GENDF:
         self._sab         = sab + "\0"
         self._reaction    = {}
         # reaction
-        self._mt_list   = []    # possible MT reaction lists
-        self._ralias    = None  # Reaction alias index
-        self._rprob     = None  # Reaction alias probability
-        self._stape_len = []    # Length of sampling instruction
-        self._stape_off = []    # Offset of sampling instruction
-        self._stape     = []    # Sampling instruction
+        self._mt_list     = []    # possible MT reaction list
+        self._res_za_list = None  # Residual ZA list
+        self._ralias      = None  # Reaction alias index
+        self._rprob       = None  # Reaction alias probability
+        self._stape_len   = []    # Length of sampling instruction
+        self._stape_off   = []    # Offset of sampling instruction
+        self._stape       = []    # Sampling instruction
         # group
         self._multiplicity = None  # Global particle multiplicity
         self._edepo        = None  # Global energy deposition
@@ -316,6 +317,12 @@ class GENDF:
         for i in range(int(np.ceil(len(reaction_repr_list) / 80))):
             print('{}'.format(reaction_repr_list[i * 80: (i + 1) * 80]))
 
+        # prepare residual ZA list
+        print("Reaction remnant list")
+        self._res_za_list = np.empty_like(self._mt_list, dtype=int)
+        for i, mt in enumerate(self._mt_list):
+            self._res_za_list[i] = self._reaction[mt].residualZA()
+
         # prepare alias table
         print(info("Prepare MT sampling alias table ..."))
         alias_shape  = (self._desc.ngn(), len(self._mt_list))
@@ -471,6 +478,7 @@ class GENDF:
         file.write(xs_total.astype(np.float32))
         # reaction
         file.write(self._mt_list.astype(np.int32))
+        file.write(self._res_za_list.astype(np.int32))
         file.write(self._ralias.flatten().astype(np.int32))
         file.write(self._rprob.flatten().astype(np.float32))
         file.write(self._stape_len.astype(np.int32))
