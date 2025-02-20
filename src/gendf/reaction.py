@@ -411,9 +411,13 @@ class Reaction:
 
         # calculate za res again
         za_res = self._za_origin + 1  # neutron capture
-        for za_sec in stape:
-            if za_sec in GENDF_MF_TO_ZA:
-                za_res -= GENDF_MF_TO_ZA[za_sec]
+        for mf in GENDF_MF_TO_MULT.keys():
+            multiplicity = GENDF_MF_TO_MULT[mf][self.mt()]
+            za_res      -= multiplicity * GENDF_MF_TO_ZA[mf]
+        if za_res in GENDF_ZA_TO_MF:
+            mf = GENDF_ZA_TO_MF[za_res]
+            if mf in self._comp.keys():
+                za_res = 0
         self._za_res = za_res
 
         inst_list = list(map(lambda x: GENDF_MF_SYMBOL[x], self._inst))
