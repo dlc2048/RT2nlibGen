@@ -6,6 +6,7 @@ import numpy as np
 from tqdm import tqdm
 
 from src.endf.endf import ENDF
+from src.endf.file4 import DistributionFunction
 from src.endf.stream import ENDFIfstream, FileInterface
 from src.endf.record import RecText, RecCont
 from src.endf.desc import REACTION_TYPE
@@ -490,12 +491,12 @@ class Reaction:
             equiprob_n[i] = ebin_seg
 
         # fast -> kinematics
-        egn   = Reaction.__egn
+        # egn   = Reaction.__egn
         awr   = endf.desc().mass()
         awr   = max(1.0, awr)
 
-        ad_mt2 = endf[2].ad
-        is_cm  = ad_mt2.isOnCMSystem()
+        # ad_mt2 = endf[2].ad
+        # is_cm  = ad_mt2.isOnCMSystem()
 
         iterator = range(len_thermal, Reaction.ngn())
         if verbose:
@@ -506,23 +507,27 @@ class Reaction:
             if len_c < 0:
                 continue
 
+            # merge transition prob
+            leg_total = np.sum(matrix[cpos:cpos + len_c], axis=0)
+            dist      = DistributionFunction(np.polynomial.Legendre(leg_total * modifier))
+
             # get transition prob
             pseg = matrix[cpos:cpos + len_c, 0]
             pseg = pseg / np.sum(pseg)  # normalize
 
-            ein  = (egn[gin] + egn[gin + 1]) * 0.5
-            dist = ad_mt2.getDistribution(ein)
+            # ein  = (egn[gin] + egn[gin + 1]) * 0.5
+            # dist = ad_mt2.getDistribution(ein)
             
             # get mu bins from transition probability (scattered neutron)
             mu_min = -1.0
             mu_max = +1.0
-            if not is_cm:
-                mu_min = muCMToLab(awr, mu_min)
-                mu_max = muCMToLab(awr, mu_max)
+            # if not is_cm:
+            #    mu_min = muCMToLab(awr, mu_min)
+            #    mu_max = muCMToLab(awr, mu_max)
 
             ebin_seg_list, _ = dist.getEquibin(nebins, mu_min, mu_max, pseg)
-            if is_cm:
-                ebin_seg_list = muCMToLab(awr, ebin_seg_list)
+            # if is_cm:
+            #     ebin_seg_list = muCMToLab(awr, ebin_seg_list)
 
             equiprob_n[cpos:cpos + len_c] = ebin_seg_list
         

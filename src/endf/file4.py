@@ -239,9 +239,9 @@ class AngularDist(FileInterface):
             e1    = np.log(e1)
         coeff = (inc_e - e0) / (e1 - e0) * eq0 + (e1 - inc_e) / (e1 - e0) * eq1
         # append a0
-        coeff    = np.append(1.0, coeff)
+        coeff    = np.append(0.5, coeff)
         modifier = (np.arange(0, len(coeff), 1) * 2 + 1) / 2   # ENDF legendre coeff
-        return DistributionFunction(np.polynomial.Legendre(coeff * modifier))
+        return DistributionFunction(np.polynomial.Legendre(coeff))
     
     def _getDistributionTabulated(self, inc_e: float) -> DistributionFunction:
         tab = self._tabulated.tab()
