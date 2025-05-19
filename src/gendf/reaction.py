@@ -497,7 +497,7 @@ class Reaction:
 
         # ad_mt2 = endf[2].ad
         # is_cm  = ad_mt2.isOnCMSystem()
-
+        
         iterator = range(len_thermal, Reaction.ngn())
         if verbose:
             iterator = tqdm(iterator)
@@ -556,8 +556,8 @@ class Reaction:
     def generateEquiprobAngles(self, endf: ENDF, nebins: int, len_thermal: int, verbose: bool):
         if self._mt == 1:  # No rule for (n,total) MT
             return
-        elif self._mt == 2:  # elastic
-            self._generateElasticEquiprobAngles(endf, nebins, len_thermal, verbose)
+        #elif self._mt == 2:  # elastic
+        #    self._generateElasticEquiprobAngles(endf, nebins, len_thermal, verbose)
         else:
             self._generateEvapEquiprobAngles(nebins, verbose)
         
