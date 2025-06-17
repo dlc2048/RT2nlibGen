@@ -65,8 +65,8 @@ class GENDF:
         # remove anything
         if 5 in self._reaction.keys():
             del self._reaction[5]
-        # merge inelastic reactions
-        for mt in (4, 16, 103, 104, 105, 106, 107):
+        # merge inelastic (fission) reactions
+        for mt in (4, 16, 18, 103, 104, 105, 106, 107):
             self._mergeReaction(mt, verbose)
 
         # link the parent secondary data to child's missing secondary 
