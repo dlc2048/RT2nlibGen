@@ -471,7 +471,7 @@ class Reaction:
         self._mult[:] = multiplicity
 
         # weight
-        if self._mt == 18:
+        if self._mt == 18 and 6 in self._comp.keys():
             self._wee = self._comp[6].multiplicity()
 
     def _generateElasticEquiprobAngles(self, endf: ENDF, nebins: int, len_thermal: int, verbose: bool):
