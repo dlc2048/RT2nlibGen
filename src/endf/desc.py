@@ -103,7 +103,8 @@ for key in REACTION_TYPE:
     HE3_MULT[key]      = he3
     ALPHA_MULT[key]    = a
 
-NEUTRON_MULT[2] = 1
+NEUTRON_MULT[2]  = 1  # elastic
+NEUTRON_MULT[18] = 1  # fission
 
 # MT hierarchy (See sum rules for cross sections in Section 0.5.1 Table 14).
 class MTHierarchyNode:

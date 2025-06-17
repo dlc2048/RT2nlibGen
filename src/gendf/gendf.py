@@ -465,12 +465,17 @@ class GENDF:
     
     def write(self, file_name: str):
         file = Fortran(file_name, mode='w')
+        has_fission_data = 18 in self._mt_list
         # header
         file.write(np.array((self._desc.za()), dtype=np.int32))                     # ZA
         file.write(np.array((self._desc_origin.isomericNumber()), dtype=np.int32))  # isomeric number
         file.write(np.array((self._temperature), dtype=np.float32))                 # temperature
         file.write(np.fromstring(self._sab, dtype=np.uint8))                        # SAB name
+        file.write(np.array((has_fission_data), dtype=np.int32))                    # fission
         file.write(np.array((self._eabin.shape[1]), dtype=np.int32))                # number of angle group
+        # fission weight
+        if has_fission_data:
+            file.write(self[18].wee().astype(np.float32))
         # XS
         xs_total = np.zeros(len(self._desc.egn()) - 1, dtype=float)
         for mt in self._mt_list:

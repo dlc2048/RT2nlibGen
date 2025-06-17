@@ -336,8 +336,9 @@ class Reaction:
         self._qvalue = qvalue  # reaction Q value
         self._inst   = None    # reaction instruction
         self._xs     = None    # XS vector
-        self._depo   = None    # Multiplicity vector
-        self._mult   = None    # Deposition vector
+        self._depo   = None    # Deposition vector
+        self._mult   = None    # Multiplicity vector
+        self._wee    = None    # Fission weight vector (used only in fission)
         self._comp   = {}      # Secondaries
 
     def setXS(self, xs_file: CommonFile):
@@ -426,7 +427,6 @@ class Reaction:
         print("Secondaries -> [{}]".format(', '.join(inst_list)))
         print("Residual ZA -> {}".format(self._za_res))
 
-            
     def _calculateResDoseAndMultiplicity(self, verbose):
         
         egn = Reaction.__egn
@@ -469,6 +469,10 @@ class Reaction:
         multiplicity  = self._comp[16].multiplicity() if 16 in self._inst else 0.0
         multiplicity += n_hadron
         self._mult[:] = multiplicity
+
+        # weight
+        if self._mt == 18:
+            self._wee = self._comp[6].multiplicity()
 
     def _generateElasticEquiprobAngles(self, endf: ENDF, nebins: int, len_thermal: int, verbose: bool):
         print(info('Angular distribution is generated from the scattering kinematics for MT={}, {} reaction'.format(self._mt, REACTION_TYPE[self._mt])))
@@ -588,6 +592,9 @@ class Reaction:
     
     def multiplicity(self) -> np.ndarray | None:
         return self._mult
+    
+    def weight(self) -> np.ndarray | None:
+        return self._wee
     
 
 def mergeComponents(mf: int, reactions: list) -> Secondary:
