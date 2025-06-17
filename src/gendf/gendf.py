@@ -475,7 +475,7 @@ class GENDF:
         file.write(np.array((self._eabin.shape[1]), dtype=np.int32))                # number of angle group
         # fission weight
         if has_fission_data:
-            file.write(self[18].wee().astype(np.float32))
+            file.write(self[18].weight().astype(np.float32))
         # XS
         xs_total = np.zeros(len(self._desc.egn()) - 1, dtype=float)
         for mt in self._mt_list:
