@@ -467,7 +467,7 @@ class GENDF:
         file = Fortran(file_name, mode='w')
         has_fission_data = 18 in self._mt_list
         if has_fission_data:
-            has_fission_data = 6 in self._reaction[18]
+            has_fission_data = 6 in self[18].keys()
         # header
         file.write(np.array((self._desc.za()), dtype=np.int32))                     # ZA
         file.write(np.array((self._desc_origin.isomericNumber()), dtype=np.int32))  # isomeric number
