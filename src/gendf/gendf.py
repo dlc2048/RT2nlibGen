@@ -452,13 +452,14 @@ class GENDF:
 
     def _generateGroupAlias(self, verbose: bool):
         print(info('Generate group alias table ...'))
-        iterator = self._gcontrol
+        gprob_origin = np.copy(self._gprob)
+        iterator     = self._gcontrol
         if verbose:
             iterator = tqdm(iterator)
         for epos, _, elen in iterator:
             if elen < 0:
                 continue
-            seg   = self._gprob[epos: epos + elen]
+            seg   = gprob_origin[epos: epos + elen]
             table = AliasTable(np.arange(elen), seg)
             self._galias[epos: epos + elen] = table.alias()
             self._gprob[epos: epos + elen]  = table.prob()
